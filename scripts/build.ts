@@ -50,5 +50,11 @@ for (const target of targets) {
     for (const log of result.logs) console.error(log);
     process.exit(1);
   }
+  // A Mac only runs a signed binary, and a cross-compiled one's signature is broken by the
+  // code appended to it, so each macOS build gets a fresh ad-hoc one (Developer ID replaces it).
+  if (target.startsWith("darwin") && process.platform === "darwin") {
+    const signed = Bun.spawnSync(["codesign", "--force", "--sign", "-", outfile]);
+    if (signed.exitCode !== 0) throw new Error(`codesign ${outfile}: ${signed.stderr.toString()}`);
+  }
   console.log(`built ${outfile}`);
 }

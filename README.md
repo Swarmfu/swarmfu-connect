@@ -6,11 +6,13 @@ This repo is the open part: the `swarmfu` program, the protocol it speaks, and t
 
 ## Use it
 
-1. Download `swarmfu` for your computer from [Releases](https://github.com/Swarmfu/swarmfu-connect/releases).
-   - **macOS:** `swarmfu-darwin-arm64` (Apple silicon) or `swarmfu-darwin-x64` (Intel).
-   - **Windows:** `swarmfu-windows-x64.exe`. Windows may warn that it doesn't recognize the app; choose More info → Run anyway.
-   - **Linux:** `swarmfu-linux-x64` or `swarmfu-linux-arm64`. Run it from a terminal.
-2. Open it: double-click it, or run `./swarmfu` in a terminal.
+1. Download `swarmfu` for your computer from [Releases](https://github.com/Swarmfu/swarmfu-connect/releases) and unpack it.
+   - **macOS:** `swarmfu-darwin-arm64.zip` (Apple silicon) or `swarmfu-darwin-x64.zip` (Intel).
+   - **Windows:** `swarmfu-windows-x64.zip`.
+   - **Linux:** `swarmfu-linux-x64.tar.gz` or `swarmfu-linux-arm64.tar.gz`. Run it from a terminal.
+2. Open it: double-click `swarmfu`, or run `./swarmfu` in a terminal.
+   - **macOS, the first time:** this beta isn't signed by Apple yet, so macOS says it can't check it and won't open it. Choose Done, then open System Settings → Privacy & Security, scroll down to "swarmfu was blocked", choose **Open Anyway** and confirm. After that it opens normally. (From a terminal, `xattr -d com.apple.quarantine swarmfu` does the same.)
+   - **Windows, the first time:** Windows may say it protected your PC; choose More info → Run anyway.
 3. When it asks, enter the pairing code from Swarmfu's Game card (Streamer mode, under Her window).
 4. Start your game. `swarmfu` finds it and starts following; leave it running while you play.
 
@@ -26,7 +28,7 @@ The next time, `swarmfu` remembers the pairing and goes straight to your game.
 
 `--site <url>` pairs through another Swarmfu site than www.swarmfu.com (a staging site, say). Your pairing lives in `~/.swarmfu/`.
 
-Minecraft, where she joins as a player of her own, comes as a separate download, `swarmfu-minecraft`, because it carries data for every Minecraft version. Put it next to `swarmfu` and `swarmfu start minecraft` uses it.
+Minecraft, where she joins as a player of her own, comes as a separate download, `swarmfu-minecraft-<your computer>`, because it carries data for every Minecraft version. Unpack it next to `swarmfu` and `swarmfu start minecraft` uses it.
 
 ## Games
 

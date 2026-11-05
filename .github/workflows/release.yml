@@ -43,12 +43,13 @@ jobs:
           echo "$NOTARY_KEY" > "$RUNNER_TEMP/notary.p8"
           xcrun notarytool store-credentials swarmfu --key "$RUNNER_TEMP/notary.p8" --key-id "$NOTARY_KEY_ID" --issuer "$NOTARY_ISSUER"
           sh scripts/sign-macos.sh
+      - run: sh scripts/package.sh
       - name: Attach the builds to the release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$GITHUB_REF_NAME" --draft --generate-notes --title "swarmfu $GITHUB_REF_NAME" \
-            $(ls dist/swarmfu* | grep -v '\.map$')
+            dist/release/*
       - name: Publish the protocol to JSR
         working-directory: packages/protocol
         run: bunx jsr publish --allow-slow-types
