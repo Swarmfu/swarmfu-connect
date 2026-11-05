@@ -4,13 +4,13 @@ on:
     tags: ["v*"]
 permissions:
   contents: write
-  id-token: write # JSR publishes with the workflow's identity, no token
 jobs:
   build:
     runs-on: macos-latest
     env:
       # Secrets can't be read in a step's `if`, so whether they're set goes through the environment.
       CAN_SIGN: ${{ secrets.MACOS_CERT_P12 != '' }}
+      CAN_PUBLISH: ${{ secrets.JSR_TOKEN != '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -50,6 +50,10 @@ jobs:
         run: |
           gh release create "$GITHUB_REF_NAME" --draft --generate-notes --title "swarmfu $GITHUB_REF_NAME" \
             dist/release/*
+      # A private repo can't be linked on jsr.io, so publishing takes a JSR access token.
       - name: Publish the protocol to JSR
+        if: env.CAN_PUBLISH == 'true'
         working-directory: packages/protocol
-        run: bunx jsr publish --allow-slow-types
+        env:
+          JSR_TOKEN: ${{ secrets.JSR_TOKEN }}
+        run: bunx jsr publish --allow-slow-types --token "$JSR_TOKEN"
