@@ -38,6 +38,7 @@ const adapter = createFileAdapter(pack, {
 });
 
 console.error(`[files] following ${pack.game} in ${dir}`);
+// Connected first: an event raised before there's a connection is never sent, and the first poll has the most.
+await adapter.server.connect(new StdioServerTransport());
 adapter.poll();
 setInterval(() => adapter.poll(), pollMs);
-await adapter.server.connect(new StdioServerTransport());
