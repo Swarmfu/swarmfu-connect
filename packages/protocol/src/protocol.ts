@@ -53,8 +53,29 @@ export type Role = (typeof ROLES)[number];
  * (`death`, `ore_found`, …) and declared in its manifest; `lane` is the
  * adapter's suggestion, which the backend may override per kind.
  */
-export const gameEventSchema = z.object({
+/** A type, not an interface, so it passes as MCP notification params. */
+export type GameEvent = {
   /** Unique per adapter run, so a retried relay is recorded once. */
+  id: string;
+  kind: string;
+  lane: Lane;
+  subject: Subject;
+  /** What happened, in a sentence she can be handed as is. */
+  summary: string;
+  /** For reflex events: what the avatar should do. */
+  reaction?: Reaction;
+  /**
+   * She sees how often this happens: recent ones are listed together, with
+   * how long ago each was, rather than only the latest (a kill, a hit).
+   */
+  tally?: boolean;
+  /** Kind-specific detail (who, what, where), kept small. */
+  data?: Record<string, unknown>;
+  /** Unix ms when it happened in the game. */
+  at: number;
+};
+
+const gameEventObject = z.object({
   id: z.string().min(1).max(64),
   kind: z
     .string()
@@ -62,21 +83,15 @@ export const gameEventSchema = z.object({
     .max(48),
   lane: z.enum(LANES),
   subject: z.enum(SUBJECTS),
-  /** What happened, in a sentence she can be handed as is. */
   summary: z.string().min(1).max(MAX_SUMMARY_CHARS),
-  /** For reflex events: what the avatar should do. */
   reaction: z.enum(REACTIONS).optional(),
-  /**
-   * She sees how often this happens: recent ones are listed together, with
-   * how long ago each was, rather than only the latest (a kill, a hit).
-   */
   tally: z.boolean().optional(),
-  /** Kind-specific detail (who, what, where), kept small. */
   data: z.record(z.string(), z.unknown()).optional(),
-  /** Unix ms when it happened in the game. */
   at: z.number(),
 });
-export type GameEvent = z.infer<typeof gameEventSchema>;
+export const gameEventSchema: z.ZodType<GameEvent> = gameEventObject;
+/** An event before the adapter gives it an id and a time, as a recording holds it. */
+export const gameEventBodySchema: z.ZodType<Omit<GameEvent, "id" | "at">> = gameEventObject.omit({ id: true, at: true });
 
 /** An event kind an adapter may emit, with its default lane. */
 export interface EventKindSpec {

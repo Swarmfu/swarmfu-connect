@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { gameEventSchema } from "./protocol.ts";
+import { gameEventBodySchema, type GameEvent } from "./protocol.ts";
 
 /**
  * A recorded play session, replayed by the simulator adapter. JSON Lines: a
@@ -8,21 +8,29 @@ import { gameEventSchema } from "./protocol.ts";
  * update (replaces one resource's value from then on).
  */
 
-export const recordingHeaderSchema = z.object({
-  type: z.literal("header"),
+export interface RecordingHeader {
+  type: "header";
   /** The adapter it was recorded from; the simulator serves that manifest. */
+  adapter: string;
+  description: string;
+  /** Usernames in the recording: hers and the user's. */
+  players: { self: string; user: string };
+}
+export const recordingHeaderSchema: z.ZodType<RecordingHeader> = z.object({
+  type: z.literal("header"),
   adapter: z.string().min(1),
   description: z.string(),
-  /** Usernames in the recording: hers and the user's. */
   players: z.object({ self: z.string(), user: z.string() }),
 });
-export type RecordingHeader = z.infer<typeof recordingHeaderSchema>;
 
-export const recordingEntrySchema = z.discriminatedUnion("type", [
+export type RecordingEntry =
+  | { type: "event"; t: number; event: Omit<GameEvent, "id" | "at"> }
+  | { type: "state"; t: number; resource: string; value: unknown };
+export const recordingEntrySchema: z.ZodType<RecordingEntry> = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("event"),
     t: z.number().nonnegative(),
-    event: gameEventSchema.omit({ id: true, at: true }),
+    event: gameEventBodySchema,
   }),
   z.object({
     type: z.literal("state"),
@@ -31,7 +39,6 @@ export const recordingEntrySchema = z.discriminatedUnion("type", [
     value: z.unknown(),
   }),
 ]);
-export type RecordingEntry = z.infer<typeof recordingEntrySchema>;
 
 export interface Recording {
   header: RecordingHeader;

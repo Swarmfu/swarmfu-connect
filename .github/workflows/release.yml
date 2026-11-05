@@ -56,4 +56,4 @@ jobs:
         working-directory: packages/protocol
         env:
           JSR_TOKEN: ${{ secrets.JSR_TOKEN }}
-        run: bunx jsr publish --allow-slow-types --token "$JSR_TOKEN"
+        run: bunx jsr publish --token "$JSR_TOKEN"

@@ -57,16 +57,23 @@ export const MAX_TOOL_SCHEMA_CHARS = 4_000;
  */
 export const DEFAULT_SITE = "https://www.swarmfu.com";
 export const CONNECT_INFO_PATH = "/connect.json";
-export const connectInfoSchema = z.object({
+export interface ConnectInfo {
   /** The Convex deployment's client URL. */
-  convexUrl: z.url(),
+  convexUrl: string;
   /** BRIDGE_PROTOCOL of the site's backend. */
+  protocol: number;
+}
+export const connectInfoSchema: z.ZodType<ConnectInfo> = z.object({
+  convexUrl: z.url(),
   protocol: z.number().int(),
 });
-export type ConnectInfo = z.infer<typeof connectInfoSchema>;
 
 /** Browser → bridge, over the localhost socket. `auth` comes first. */
-export const bridgeClientMessageSchema = z.discriminatedUnion("type", [
+export type BridgeClientMessage =
+  | { type: "auth"; secret: string; protocol: number }
+  | { type: "pause" }
+  | { type: "resume" };
+export const bridgeClientMessageSchema: z.ZodType<BridgeClientMessage> = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("auth"),
     secret: z.string().min(1).max(200),
@@ -75,7 +82,6 @@ export const bridgeClientMessageSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("pause") }),
   z.object({ type: z.literal("resume") }),
 ]);
-export type BridgeClientMessage = z.infer<typeof bridgeClientMessageSchema>;
 
 export interface BridgeAdapterInfo {
   id: string;

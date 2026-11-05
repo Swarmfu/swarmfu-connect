@@ -22,6 +22,7 @@ export const CONNECTOR_PROTOCOL = 1;
 
 /** Whose an event is, as a connector says it: the person playing, someone else, or the world. */
 export const CONNECTOR_SUBJECTS = ["player", "other", "world"] as const;
+export type ConnectorSubject = (typeof CONNECTOR_SUBJECTS)[number];
 const SUBJECT_OF: Record<(typeof CONNECTOR_SUBJECTS)[number], Subject> = {
   player: "user",
   other: "other",
@@ -29,7 +30,15 @@ const SUBJECT_OF: Record<(typeof CONNECTOR_SUBJECTS)[number], Subject> = {
 };
 
 /** The in-game clock, as much of it as the game has. */
-export const gameTimeSchema = z
+export interface GameTime {
+  year?: number;
+  month?: number;
+  day?: number;
+  hour?: number;
+  minute?: number;
+  [key: string]: unknown;
+}
+export const gameTimeSchema: z.ZodType<GameTime> = z
   .object({
     year: z.number(),
     month: z.number(),
@@ -39,7 +48,6 @@ export const gameTimeSchema = z
   })
   .partial()
   .loose();
-export type GameTime = z.infer<typeof gameTimeSchema>;
 
 /** A bare file name in the connector's folder: never a path out of it. */
 const fileName = z
@@ -48,7 +56,19 @@ const fileName = z
   .refine((name) => !name.includes(".."), "not a file name");
 
 /** `manifest.json`: the session and the events file being written. */
-export const connectorManifestSchema = z
+export interface ConnectorManifest {
+  v: number;
+  source: string;
+  connector?: string;
+  connector_version?: string;
+  session: string;
+  started_at?: number;
+  /** A bare file name in this folder. */
+  events_file: string;
+  game?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+export const connectorManifestSchema: z.ZodType<ConnectorManifest> = z
   .object({
     v: z.number(),
     source: z.string().min(1).max(48),
@@ -60,10 +80,21 @@ export const connectorManifestSchema = z
     game: z.record(z.string(), z.unknown()).optional(),
   })
   .loose();
-export type ConnectorManifest = z.infer<typeof connectorManifestSchema>;
 
 /** One line of the events file. */
-export const connectorEventSchema = z
+export interface ConnectorEvent {
+  v: number;
+  source?: string;
+  session: string;
+  seq: number;
+  ts: number;
+  game_time?: GameTime;
+  type: string;
+  subject?: ConnectorSubject;
+  data?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+export const connectorEventSchema: z.ZodType<ConnectorEvent> = z
   .object({
     v: z.number(),
     source: z.string().optional(),
@@ -79,10 +110,16 @@ export const connectorEventSchema = z
     data: z.record(z.string(), z.unknown()).optional(),
   })
   .loose();
-export type ConnectorEvent = z.infer<typeof connectorEventSchema>;
 
 /** `state.json`, if the connector writes one: everything about "right now", for her to read on demand. */
-export const stateSchema = z
+export interface GameState {
+  v: number;
+  session: string;
+  ts: number;
+  game_time?: GameTime;
+  [key: string]: unknown;
+}
+export const stateSchema: z.ZodType<GameState> = z
   .object({
     v: z.number(),
     session: z.string().min(1).max(128),
@@ -90,10 +127,19 @@ export const stateSchema = z
     game_time: gameTimeSchema.optional(),
   })
   .loose();
-export type GameState = z.infer<typeof stateSchema>;
 
 /** `heartbeat.json`: liveness, and how things are right now. */
-export const heartbeatSchema = z
+export interface Heartbeat {
+  v: number;
+  session: string;
+  ts: number;
+  seq?: number;
+  paused?: boolean;
+  game_speed?: number;
+  game_time?: GameTime;
+  [key: string]: unknown;
+}
+export const heartbeatSchema: z.ZodType<Heartbeat> = z
   .object({
     v: z.number(),
     session: z.string().min(1).max(128),
@@ -104,7 +150,6 @@ export const heartbeatSchema = z
     game_time: gameTimeSchema.optional(),
   })
   .loose();
-export type Heartbeat = z.infer<typeof heartbeatSchema>;
 
 /** A heartbeat older than this means the game has closed or crashed. */
 export const HEARTBEAT_STALE_MS = 10_000;
@@ -169,7 +214,8 @@ export interface GamePack {
 }
 
 /** Kinds the file adapter sends for any game, besides the pack's. */
-export const CONNECTOR_KINDS = {
+export type ConnectorKind = "status" | "game_paused" | "game_resumed" | "game_closed" | "game_opened";
+export const CONNECTOR_KINDS: Record<ConnectorKind, EventKindSpec> = {
   status: {
     lane: "silent",
     description: "How things are right now, from the game's heartbeat.",
@@ -184,7 +230,7 @@ export const CONNECTOR_KINDS = {
     lane: "silent",
     description: "The game is running again after being closed.",
   },
-} as const satisfies Record<string, EventKindSpec>;
+};
 
 /** The adapter manifest for a pack: its kinds and the connector's own, no tools, the state as resources. */
 export function packManifest(pack: GamePack): AdapterManifest {
