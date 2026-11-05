@@ -1,0 +1,5 @@
+node_modules/
+dist/
+*.map
+.DS_Store
+# Game fixtures are .log files on purpose (some games can't write .jsonl), so logs aren't ignored.

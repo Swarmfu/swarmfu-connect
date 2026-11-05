@@ -1,0 +1,18 @@
+{
+  "name": "swarmfu-connect",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "typecheck": "bun run --filter '*' typecheck",
+    "test": "bun test",
+    "build": "bun scripts/build.ts",
+    "swarmfu": "bun packages/cli/src/cli.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.3",
+    "typescript": "^7.0.2"
+  }
+}

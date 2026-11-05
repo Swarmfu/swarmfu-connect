@@ -1,0 +1,25 @@
+{
+  "name": "@swarmfu/connect-minecraft",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./main": "./src/main.ts",
+    "./manifest": "./src/manifest.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.1",
+    "@swarmfu/connect-protocol": "workspace:*",
+    "mineflayer": "4.39.0",
+    "mineflayer-collectblock": "1.6.0",
+    "mineflayer-pathfinder": "2.4.5",
+    "prismarine-entity": "2.6.0",
+    "vec3": "0.1.10",
+    "zod": "^4.6.7"
+  }
+}

@@ -1,0 +1,53 @@
+{"type":"header","adapter":"minecraft","description":"First night: wood, a creeper, lava, diamonds, dawn","players":{"self":"Kiri","user":"Steve"}}
+// Hand-written, not captured: replace with a real recording once the Minecraft adapter can save one.
+{"type":"state","t":0,"resource":"self","value":{"health":20,"food":20,"position":{"x":112,"y":64,"z":-40},"held":null,"task":null}}
+{"type":"state","t":0,"resource":"inventory","value":{}}
+{"type":"state","t":0,"resource":"world","value":{"time":"day","weather":"clear","dimension":"overworld","difficulty":"normal"}}
+{"type":"state","t":0,"resource":"nearby_entities","value":[{"type":"player","name":"Steve","distance":4}]}
+{"type":"state","t":0,"resource":"nearby_blocks","value":[]}
+{"type":"event","t":0,"event":{"kind":"player_joined","lane":"respond","subject":"self","summary":"Kiri joined Steve's world, next to him in a birch forest.","data":{"player":"Kiri"}}}
+{"type":"event","t":2500,"event":{"kind":"chat","lane":"respond","subject":"user","summary":"Steve said in chat: \"hey! help me get some wood before dark\"","data":{"player":"Steve","message":"hey! help me get some wood before dark"}}}
+{"type":"event","t":5000,"event":{"kind":"status","lane":"silent","subject":"self","summary":"Kiri: 20/20 health, 20/20 food, empty-handed, at 112 64 -40.","data":{"health":20,"food":20}}}
+{"type":"event","t":9000,"event":{"kind":"user_activity","lane":"silent","subject":"user","summary":"Steve is chopping birch trees a few blocks away.","data":{"activity":"chopping"}}}
+{"type":"state","t":16000,"resource":"inventory","value":{"birch_log":6}}
+{"type":"event","t":16000,"event":{"kind":"item_collected","lane":"silent","subject":"self","summary":"Kiri picked up 6 birch logs.","data":{"item":"birch_log","count":6}}}
+{"type":"state","t":24000,"resource":"world","value":{"time":"dusk","weather":"clear","dimension":"overworld","difficulty":"normal"}}
+{"type":"event","t":24000,"event":{"kind":"time_changed","lane":"silent","subject":"world","summary":"The sun is setting.","data":{"time":"dusk"}}}
+{"type":"event","t":30000,"event":{"kind":"unsheltered_night","lane":"respond","subject":"world","summary":"Night fell and Kiri and Steve are standing in an open field with no shelter.","data":{}}}
+{"type":"state","t":34000,"resource":"nearby_entities","value":[{"type":"creeper","distance":2},{"type":"player","name":"Steve","distance":6}]}
+{"type":"event","t":34000,"event":{"kind":"creeper_fuse","lane":"reflex","subject":"self","summary":"A creeper started hissing right behind Kiri.","data":{"distance":2}}}
+{"type":"event","t":35500,"event":{"kind":"explosion","lane":"reflex","subject":"world","summary":"The creeper blew up, leaving a crater where Kiri had been standing.","data":{"source":"creeper"}}}
+{"type":"state","t":35700,"resource":"self","value":{"health":14,"food":19,"position":{"x":118,"y":64,"z":-36},"held":null,"task":null}}
+{"type":"event","t":35700,"event":{"kind":"hurt","lane":"reflex","subject":"self","summary":"Kiri took 6 damage from the blast.","data":{"amount":6,"source":"creeper","health":14}}}
+{"type":"state","t":38000,"resource":"nearby_entities","value":[{"type":"player","name":"Steve","distance":7}]}
+{"type":"event","t":38000,"event":{"kind":"escaped","lane":"reflex","subject":"self","summary":"Kiri got clear; nothing hostile nearby.","data":{}}}
+{"type":"event","t":41000,"event":{"kind":"chat","lane":"respond","subject":"user","summary":"Steve said in chat: \"LMAO you screamed\"","data":{"player":"Steve","message":"LMAO you screamed"}}}
+{"type":"event","t":46000,"event":{"kind":"user_activity","lane":"silent","subject":"user","summary":"Steve is digging straight down.","data":{"activity":"digging_down"}}}
+{"type":"event","t":49000,"event":{"kind":"death","lane":"respond","subject":"user","summary":"Steve dug straight down into a lava pocket and burned to death. His items are gone.","data":{"player":"Steve","cause":"lava"}}}
+{"type":"event","t":52000,"event":{"kind":"chat","lane":"respond","subject":"user","summary":"Steve said in chat: \"noooo my stuff\"","data":{"player":"Steve","message":"noooo my stuff"}}}
+{"type":"event","t":56000,"event":{"kind":"status","lane":"silent","subject":"self","summary":"Kiri: 14/20 health, 19/20 food, empty-handed, at 118 64 -36.","data":{"health":14,"food":19}}}
+{"type":"event","t":62000,"event":{"kind":"user_activity","lane":"silent","subject":"user","summary":"Steve respawned and is running back to her.","data":{"activity":"running"}}}
+{"type":"state","t":70000,"resource":"nearby_entities","value":[{"type":"zombie","distance":5},{"type":"player","name":"Steve","distance":12}]}
+{"type":"event","t":74000,"event":{"kind":"mob_killed","lane":"respond","subject":"self","summary":"Kiri killed a zombie with her bare hands.","data":{"mob":"zombie"}}}
+{"type":"state","t":80000,"resource":"world","value":{"time":"midnight","weather":"clear","dimension":"overworld","difficulty":"normal"}}
+{"type":"event","t":80000,"event":{"kind":"time_changed","lane":"silent","subject":"world","summary":"It's midnight.","data":{"time":"midnight"}}}
+{"type":"event","t":86000,"event":{"kind":"task_finished","lane":"silent","subject":"self","summary":"Kiri finished building a small dirt hut.","data":{"task":"build","outcome":"done"}}}
+{"type":"event","t":92000,"event":{"kind":"user_activity","lane":"silent","subject":"user","summary":"Steve is mining in a cave under the hut.","data":{"activity":"mining"}}}
+{"type":"state","t":100000,"resource":"nearby_blocks","value":[{"block":"diamond_ore","count":4,"distance":5},{"block":"lava","count":3,"distance":9}]}
+{"type":"event","t":100000,"event":{"kind":"ore_found","lane":"respond","subject":"user","summary":"Steve found diamonds: four diamond ore in the cave wall.","data":{"block":"diamond_ore","count":4}}}
+{"type":"event","t":104000,"event":{"kind":"chat","lane":"respond","subject":"user","summary":"Steve said in chat: \"DIAMONDS!!!\"","data":{"player":"Steve","message":"DIAMONDS!!!"}}}
+{"type":"event","t":110000,"event":{"kind":"falling","lane":"reflex","subject":"self","summary":"Kiri slipped off a ledge in the cave.","data":{"height":6}}}
+{"type":"state","t":110600,"resource":"self","value":{"health":6,"food":17,"position":{"x":131,"y":31,"z":-29},"held":null,"task":null}}
+{"type":"event","t":110600,"event":{"kind":"hurt","lane":"reflex","subject":"self","summary":"Kiri took 8 fall damage.","data":{"amount":8,"source":"fall","health":6}}}
+{"type":"event","t":111000,"event":{"kind":"low_health","lane":"reflex","subject":"self","summary":"Kiri is down to 6/20 health and backing away from the edge.","data":{"health":6}}}
+{"type":"event","t":116000,"event":{"kind":"status","lane":"silent","subject":"self","summary":"Kiri: 6/20 health, 17/20 food, empty-handed, at 131 31 -29.","data":{"health":6,"food":17}}}
+{"type":"event","t":124000,"event":{"kind":"build_damaged","lane":"respond","subject":"user","summary":"Steve broke three blocks off Kiri's dirt hut to get out of the cave.","data":{"player":"Steve","blocks":3}}}
+{"type":"state","t":132000,"resource":"world","value":{"time":"midnight","weather":"rain","dimension":"overworld","difficulty":"normal"}}
+{"type":"event","t":132000,"event":{"kind":"weather_changed","lane":"silent","subject":"world","summary":"It started to rain.","data":{"weather":"rain"}}}
+{"type":"event","t":140000,"event":{"kind":"hurt","lane":"reflex","subject":"self","summary":"A skeleton's arrow hit Kiri.","data":{"amount":4,"source":"skeleton","health":2}}}
+{"type":"state","t":142000,"resource":"self","value":{"health":20,"food":20,"position":{"x":112,"y":64,"z":-40},"held":null,"task":null}}
+{"type":"state","t":142000,"resource":"inventory","value":{}}
+{"type":"event","t":142000,"event":{"kind":"death","lane":"respond","subject":"self","summary":"Kiri was shot dead by a skeleton and respawned at the spawn point, empty-handed.","data":{"player":"Kiri","cause":"skeleton"}}}
+{"type":"state","t":160000,"resource":"world","value":{"time":"dawn","weather":"clear","dimension":"overworld","difficulty":"normal"}}
+{"type":"event","t":160000,"event":{"kind":"time_changed","lane":"silent","subject":"world","summary":"The sun is coming up.","data":{"time":"dawn"}}}
+{"type":"event","t":163000,"event":{"kind":"chat","lane":"respond","subject":"user","summary":"Steve said in chat: \"we survived the night! mostly\"","data":{"player":"Steve","message":"we survived the night! mostly"}}}

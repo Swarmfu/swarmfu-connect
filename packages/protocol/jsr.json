@@ -1,0 +1,14 @@
+{
+  "name": "@swarmfu/connect-protocol",
+  "version": "0.1.0",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts",
+    "./adapter": "./src/adapter.ts"
+  },
+  "publish": {
+    "exclude": [
+      "**/*.test.ts"
+    ]
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "name": "@swarmfu/cli",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "bin": {
+    "swarmfu": "./src/cli.ts"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.1",
+    "@swarmfu/connect-protocol": "workspace:*",
+    "@swarmfu/connect-files": "workspace:*",
+    "@swarmfu/connect-minecraft": "workspace:*",
+    "@swarmfu/connect-simulator": "workspace:*",
+    "convex": "^1.47.0",
+    "ws": "8.21.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/ws": "8.18.1"
+  }
+}
