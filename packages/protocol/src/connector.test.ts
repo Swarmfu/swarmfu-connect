@@ -1,10 +1,13 @@
 import { expect, test } from "bun:test";
 import {
+  clockOf,
   connectorEventSchema,
   connectorManifestSchema,
   fillTemplate,
+  moreStatusLines,
   packManifest,
   playerName,
+  statusLine,
   translateEvent,
   type ConnectorEvent,
   type GamePack,
@@ -140,4 +143,37 @@ test("the manifest's events file has to be a file in the folder", () => {
   expect(
     connectorEventSchema.safeParse(event({ type: "Bad Type" })).success,
   ).toBe(false);
+});
+
+test("the game's clock reads the way it's said", () => {
+  expect(clockOf({ hour: 15, minute: 5 })).toBe("3:05 pm");
+  expect(clockOf({ hour: 0, minute: 30 })).toBe("12:30 am");
+  expect(clockOf({ hour: 12 })).toBe("12:00 pm");
+  expect(clockOf({ hour: 9, minute: 5 })).toBe("9:05 am");
+  expect(clockOf(undefined)).toBeUndefined();
+});
+
+test("a list shows its first few, an object its entries, and an empty one nothing", () => {
+  expect(fillTemplate("took {items|list}", { items: ["20 Nails", "Rolling_Papers"] })).toBe("took 20 Nails, Rolling Papers");
+  expect(fillTemplate("{m|list}", { m: { stress: 2, heavy_load: 1 } })).toBe("stress 2, heavy load 1");
+  expect(fillTemplate("{xs|list}", { xs: Array.from({ length: 12 }, (_, i) => `${i}`) })).toBe("0, 1, 2, 3, 4, 5, 6, 7");
+  expect(fillTemplate("{xs|list}", { xs: [] })).toBeNull();
+  expect(fillTemplate("{m|list}", { m: {} })).toBeNull();
+});
+
+test("status templates can have conditions, and a pack's other lines come by kind", () => {
+  const withStatus: GamePack = {
+    ...pack,
+    status: {
+      everyMs: 1,
+      summary: [{ when: { floor: { gte: 1 } }, summary: "Up {floor} floors." }, "On the ground."],
+      more: [{ kind: "carrying", description: "What they carry.", summary: ["Carrying {kg|1} kg."] }],
+    },
+  };
+  const source = { v: 1, session: "s", ts: 1, floor: 0, kg: 7.25 };
+  expect(statusLine(withStatus, source)).toBe("On the ground.");
+  expect(statusLine(withStatus, { ...source, floor: 2 })).toBe("Up 2 floors.");
+  expect(moreStatusLines(withStatus, source)).toEqual([{ kind: "carrying", line: "Carrying 7.3 kg." }]);
+  expect(moreStatusLines(withStatus, { v: 1, session: "s", ts: 1 })).toEqual([]);
+  expect(packManifest(withStatus).events.carrying).toEqual({ lane: "silent", description: "What they carry." });
 });

@@ -6,6 +6,9 @@ import { join } from "node:path";
 import { createFileAdapter } from "./adapter.ts";
 import { projectzomboid } from "./packs/projectzomboid.ts";
 
+/** Her "right now" lines: the status and the pack's others. */
+const STATE_KINDS = new Set(["status", "carrying", "gear", "body", "watching"]);
+
 const dirs: string[] = [];
 afterEach(() => {
   for (const dir of dirs.splice(0))
@@ -195,10 +198,20 @@ test("the heartbeat says when the game pauses, closes and comes back, and her st
   });
   r.adapter.poll();
   expect(r.summaries()).toEqual([
-    "Carlton O'Connell is in the kids bedroom, healthy; 3 zombies nearby, 1 chasing. fog, day, 09:05.",
+    "Carlton O'Connell is in the kids bedroom, healthy; 3 zombies nearby, 1 chasing. fog, day, 9:05 am.",
   ]);
   // Unchanged, it isn't sent again, however long it's been.
   r.tick(31_000);
+  // A pause shorter than PAUSE_HOLD_MS (a menu, switching windows) isn't one.
+  r.heartbeat("s1", { paused: true });
+  r.adapter.poll();
+  r.tick(2_000);
+  r.heartbeat("s1");
+  r.adapter.poll();
+  expect(r.summaries()).toHaveLength(1);
+  r.heartbeat("s1", { paused: true });
+  r.adapter.poll();
+  r.tick(5_000);
   r.heartbeat("s1", { paused: true });
   r.adapter.poll();
   expect(r.summaries().slice(1)).toEqual(["The game is paused."]);
@@ -250,7 +263,7 @@ test("the milestone 2 sample reads as her events: fights, chases and scares reac
     log: () => {},
   });
   adapter.poll();
-  const pack = events.filter((e) => e.kind !== "status");
+  const pack = events.filter((e) => !STATE_KINDS.has(e.kind));
   // Every line of the session is something she knows about; none dropped.
   expect(pack).toHaveLength(89);
   const by = (kind: string) => events.filter((e) => e.kind === kind);
@@ -269,7 +282,7 @@ test("the milestone 2 sample reads as her events: fights, chases and scares reac
   expect(adapter.resource("self")).toEqual({ partner: "Carlton O'Connell", world: "2026-11-04_23-27-26" });
   expect(adapter.resource("state")).toMatchObject({ running: true, place: { room: "hall" }, threat: { nearby: 0 } });
   expect(by("status")[0]?.summary).toBe(
-    "Carlton O'Connell is in the hall, healthy; 0 zombies nearby, 0 chasing. clear, day, 14:34.",
+    "Carlton O'Connell is in the hall, healthy; 0 zombies nearby, 0 chasing. clear, day, 2:34 pm.",
   );
 });
 
@@ -284,7 +297,7 @@ test("connector 0.3.0: hits, near misses and distances in metres", () => {
   r.line("s1", 5, "near_death", { health: 14.6, bleeding_parts: 2, chasing: 3 });
   r.line("s1", 6, "vehicle_entered", { vehicle: "Base.CarNormal", driver: true });
   r.adapter.poll();
-  const events = r.events.filter((e) => e.kind !== "status");
+  const events = r.events.filter((e) => !STATE_KINDS.has(e.kind));
   expect(events.map((e) => [e.kind, e.lane, e.summary])).toEqual([
     ["zombie_killed", "silent", "Bob killed a zombie with the Axe, 0.4 m away."],
     ["player_hit", "respond", "A zombie bit Bob on the forearm l!"],

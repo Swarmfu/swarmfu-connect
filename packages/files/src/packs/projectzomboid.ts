@@ -7,7 +7,9 @@ import type { GamePack } from "@swarmfu/connect-protocol";
  * rooms, activities, weather, and a state file with threat, condition, place
  * and weather; 0.3.0 adds hits, near misses, grabs, other hurts, injuries,
  * near death, health bands, hordes, sleep, vehicles and the time of day, and
- * names distances in metres (`distance_m`).
+ * names distances in metres (`distance_m`); 0.4.0 adds items taken, stored
+ * and dropped, doors, windows and barricades, sounds heard, the TV and
+ * radio, body build, and what they carry and weigh in the state file.
  *
  * Every kill and every hit is its own event, tallied, so she follows the
  * pace of a fight. A kill's distance isn't danger (a machete kill is always
@@ -17,7 +19,7 @@ import type { GamePack } from "@swarmfu/connect-protocol";
 export const projectzomboid: GamePack = {
   id: "projectzomboid",
   game: "Project Zomboid",
-  version: "3",
+  version: "4",
   role: "spectator",
   folder: {
     darwin: "~/Zomboid/Lua/swarmfu-connector",
@@ -464,12 +466,156 @@ export const projectzomboid: GamePack = {
           when: { "data.activity": "read" },
           summary: "{player} read {data.title}.",
         },
+        // What they ate, and what they moved or put on: the second play test asked.
+        { when: { "data.activity": "eat" }, summary: "{player} ate {data.item}." },
         { when: { "data.activity": "eat" }, summary: "{player} ate." },
         {
           when: { "data.activity": "craft" },
           summary: "{player} finished crafting: {data.recipe}.",
         },
+        { summary: "{player} finished: {data.activity|words}, a {data.furniture}." },
+        { summary: "{player} finished: {data.activity|words}, the {data.item}." },
         { summary: "{player} finished: {data.activity|words} ({data.category|words})." },
+      ],
+    },
+    items_taken: {
+      description: "The player took items from somewhere: a fridge, a crate, a corpse, the ground.",
+      rules: [
+        {
+          when: { "data.more_kinds": { gt: 0 } },
+          tally: true,
+          summary: "{player} took {data.items|list} and {data.more_kinds} more kinds of things from the {data.from}.",
+        },
+        { tally: true, summary: "{player} took {data.items|list} from the {data.from}." },
+        { tally: true, summary: "{player} took {data.items|list}." },
+      ],
+    },
+    items_stored: {
+      description: "The player put items into a container that isn't theirs.",
+      rules: [
+        {
+          when: { "data.more_kinds": { gt: 0 } },
+          tally: true,
+          summary: "{player} put {data.items|list} and {data.more_kinds} more kinds of things in the {data.into}.",
+        },
+        { tally: true, summary: "{player} put {data.items|list} in the {data.into}." },
+      ],
+    },
+    items_dropped: {
+      description: "The player dropped or placed items on the floor.",
+      rules: [{ tally: true, summary: "{player} dropped {data.items|list}." }],
+    },
+    body_build_changed: {
+      description: "The player's build changed: underweight, normal, overweight and so on.",
+      rules: [
+        {
+          lane: "respond",
+          summary: "{player} went from {data.previous} to {data.build}, {data.weight_kg|0} kg.",
+        },
+        { lane: "respond", summary: "{player} is {data.build} now." },
+      ],
+    },
+    door_opened: {
+      description: "The player opened a door.",
+      rules: [{ summary: "{player} opened the {data.door}." }],
+    },
+    door_closed: {
+      description: "The player closed a door.",
+      rules: [{ summary: "{player} closed the {data.door}." }],
+    },
+    door_locked: {
+      description: "The player locked a door.",
+      rules: [{ summary: "{player} locked the {data.door}." }],
+    },
+    door_unlocked: {
+      description: "The player unlocked a door.",
+      rules: [{ summary: "{player} unlocked the {data.door}." }],
+    },
+    window_opened: {
+      description: "The player opened a window.",
+      rules: [{ summary: "{player} opened a window." }],
+    },
+    window_closed: {
+      description: "The player closed a window.",
+      rules: [{ summary: "{player} closed a window." }],
+    },
+    curtains_opened: {
+      description: "The player opened curtains.",
+      rules: [{ summary: "{player} opened the curtains." }],
+    },
+    curtains_closed: {
+      description: "The player closed curtains.",
+      rules: [{ summary: "{player} closed the curtains." }],
+    },
+    window_smashed: {
+      description: "The player smashed a window, of a house or a car.",
+      rules: [{ summary: "{player} smashed a {data.window}." }, { summary: "{player} smashed a window." }],
+    },
+    barricade_added: {
+      description: "The player barricaded a window or door.",
+      rules: [
+        { summary: "{player} barricaded a {data.target} with {data.material}." },
+        { summary: "{player} barricaded a {data.target}." },
+      ],
+    },
+    barricade_removed: {
+      description: "The player took a barricade down.",
+      rules: [{ summary: "{player} took the barricade off a {data.target}." }],
+    },
+    sound_heard: {
+      description: "The player heard something: banging, a window breaking, a gunshot, an alarm, a helicopter, a scream.",
+      rules: [
+        // What draws a crowd, or is at their own walls, is worth a word; distant dogs aren't.
+        {
+          when: { "data.sound": "banging", "data.distance_m": { lte: 15 } },
+          lane: "respond",
+          summary: "{player} hears banging on a {data.on}, {data.where}, {data.distance_m|0} m away.",
+        },
+        {
+          when: { "data.sound": "banging", "data.distance_m": { lte: 15 } },
+          lane: "respond",
+          summary: "{player} hears banging on a {data.on}, {data.distance_m|0} m away.",
+        },
+        ...["helicopter", "house alarm", "car alarm", "gunshot", "window breaking"].flatMap((sound) => [
+          {
+            when: { "data.sound": sound, "data.distance_m": { lte: 300 } },
+            lane: "respond" as const,
+            summary: "{player} heard a {data.sound} to the {data.direction}, {data.distance_m|0} m away.",
+          },
+          {
+            when: { "data.sound": sound, "data.distance_m": { lte: 300 } },
+            lane: "respond" as const,
+            summary: "{player} heard a {data.sound}, {data.distance_m|0} m away.",
+          },
+        ]),
+        { summary: "{player} heard {data.sound} to the {data.direction}, {data.distance_m|0} m away." },
+        { summary: "{player} heard {data.sound}, {data.distance_m|0} m away." },
+        { summary: "{player} heard {data.sound}." },
+      ],
+    },
+    media_started: {
+      description: "The player started watching TV or listening to the radio, or put on a tape or disc.",
+      rules: [
+        { summary: "{player} put on {data.show} on the {data.device}." },
+        { summary: "{player} turned on the {data.device}: {data.channel}." },
+        { summary: "{player} turned on the {data.device}." },
+      ],
+    },
+    media_skill_gained: {
+      description: "The player learned something from a show: the first of a skill's experience from it.",
+      rules: [
+        { summary: "{player} is picking up {data.skill} from {data.channel} on the {data.device}." },
+        { summary: "{player} is picking up {data.skill} from the {data.device}." },
+      ],
+    },
+    media_stopped: {
+      description: "The TV or radio show they were following stopped: it ended, changed or was turned off.",
+      rules: [
+        {
+          summary: "{player}'s {data.channel} on the {data.device} {data.reason}; it trained {data.skills_trained|list}.",
+        },
+        { summary: "{player}'s {data.channel} on the {data.device} {data.reason}." },
+        { summary: "{player}'s {data.device} {data.reason}." },
       ],
     },
     session_end: {
@@ -486,11 +632,63 @@ export const projectzomboid: GamePack = {
   status: {
     everyMs: 30_000,
     summary: [
-      // From the state file (connector 0.2.0 and up).
+      // From the state file (connector 0.2.0 and up); floor 0 is the ground floor.
+      {
+        when: { "place.floor": { gte: 1 } },
+        summary:
+          "{player} is in the {place.room|words}, {place.floor} floors up, {condition.band}; {threat.nearby} zombies nearby, {threat.chasing} chasing. {weather.label}, {day_phase}, {time}.",
+      },
       "{player} is in the {place.room|words}, {condition.band}; {threat.nearby} zombies nearby, {threat.chasing} chasing. {weather.label}, {day_phase}, {time}.",
       "{player} is outdoors, {condition.band}; {threat.nearby} zombies nearby, {threat.chasing} chasing. {weather.label}, {day_phase}, {time}.",
       // From the heartbeat alone.
       "{player}, a {player.profession}, has survived {player.hours_survived|0} hours with {player.zombie_kills} kills; in the game it's {time}.",
+    ],
+    // Connector 0.4.0: what the second play test asked her and she couldn't say.
+    more: [
+      {
+        kind: "carrying",
+        description: "How much the player carries, and what kinds of things.",
+        summary: [
+          "{player} carries {carrying.weight_kg|1} of {carrying.capacity_kg|0} kg: {inventory.item_count} things ({inventory.categories|list}).",
+          "{player} carries {carrying.weight_kg|1} of {carrying.capacity_kg|0} kg.",
+        ],
+      },
+      {
+        kind: "gear",
+        description: "The player's weapons, ammo, worn bags and what's in hand.",
+        summary: [
+          "{player}'s weapons: {inventory.weapons|list}; ammo: {inventory.ammo|list}; bags: {inventory.bags|list}; in hand: {equipped.primary}.",
+          "{player}'s weapons: {inventory.weapons|list}; bags: {inventory.bags|list}; in hand: {equipped.primary}.",
+          "{player}'s weapons: {inventory.weapons|list}; ammo: {inventory.ammo|list}; bags: {inventory.bags|list}.",
+          "{player}'s weapons: {inventory.weapons|list}; bags: {inventory.bags|list}.",
+          "{player}'s bags: {inventory.bags|list}.",
+        ],
+      },
+      {
+        kind: "body",
+        description: "The player's body: weight, build, moodles, sneaking.",
+        summary: [
+          { when: { "movement.sneaking": true }, summary: "{player} weighs {body.weight_kg|0} kg ({body.build}, {body.trend}), is sneaking; moodles (of 4): {condition.moodles|list}." },
+          "{player} weighs {body.weight_kg|0} kg ({body.build}, {body.trend}); moodles (of 4): {condition.moodles|list}.",
+          { when: { "movement.sneaking": true }, summary: "{player} weighs {body.weight_kg|0} kg ({body.build}, {body.trend}), is sneaking, and has no moodles." },
+          "{player} weighs {body.weight_kg|0} kg ({body.build}, {body.trend}) and has no moodles.",
+          "{player} weighs {body.weight_kg|0} kg ({body.build}); moodles (of 4): {condition.moodles|list}.",
+          "{player} weighs {body.weight_kg|0} kg ({body.build}) and has no moodles.",
+        ],
+      },
+      {
+        kind: "watching",
+        description: "The TV or radio the player is following.",
+        summary: [
+          "{player} has {media.channel} on the {media.device}: {media.show}, {media.minutes|0} min in.",
+          "{player} has {media.channel} on the {media.device}, {media.minutes|0} min in.",
+          // Only a connector that reports media (0.4.0, which also reports carrying) can say nothing's on.
+          {
+            when: { "media.device": { exists: false }, "carrying.weight_kg": { exists: true } },
+            summary: "Nothing's on the TV or radio.",
+          },
+        ],
+      },
     ],
   },
 };

@@ -220,18 +220,26 @@ a list of `rules`; the first that fits is used:
 - `tally: true`: she sees how often it happens. Recent ones are listed
   together, with how long ago each was, instead of only the latest.
 - `summary`: the sentence she reads, with `{path}` filled in from the event
-  (`{player}` is the character's name, `{time}` the in-game clock, and
-  `{path|1}` rounds a number to one decimal, `{path|words}` turns an id like
-  `hang_sheet` into "hang sheet"). A rule whose placeholders aren't
-  all there doesn't fit, so the next one is tried.
+  (`{player}` is the character's name, `{time}` the in-game clock as it's
+  said, "3:05 pm"; `{path|1}` rounds a number to one decimal, `{path|words}`
+  turns an id like `hang_sheet` into "hang sheet", and `{path|list}` joins a
+  list, or an object's entries, with commas: "20 Nails, Rolling Papers",
+  "stress 2, unhappy 1"). A rule whose placeholders aren't all there doesn't
+  fit, so the next one is tried; an empty list doesn't fill.
 - `drop: true`: ignore events that fit.
 - `kind` (optional): the name she sees for it, if not the `type`.
 
 A type the pack doesn't list is dropped (and logged), so a newer mod with more
 events still works with an older pack.
 
-`status` is a sentence from the heartbeat, sent as her picture of "right now"
-at most every `everyMs`, and only when it has changed.
+`status` is a sentence from the state file (or the heartbeat), sent as her
+picture of "right now" at most every `everyMs`, and only when it has changed.
+A template can be `{ when, summary }` to apply only when its `when` fits the
+state, as in event rules. `status.more` adds other "right now" lines, each
+with its own `kind` (`carrying`, `body`), so she keeps the latest of each: put
+what a player might ask about there (what they carry, how much they weigh),
+and give each a last template that still fills when there's nothing to say
+("has no moodles"), or her last line of that kind stays as it was.
 
 ### Preprocessing (planned)
 

@@ -2,6 +2,7 @@ import {
   HEARTBEAT_STALE_MS,
   packManifest,
   playerName,
+  moreStatusLines,
   statusLine,
   translateEvent,
   valueAt,
@@ -16,6 +17,12 @@ import {
   type RaisedEvent,
 } from "@swarmfu/connect-protocol/adapter";
 import { ConnectorReader } from "./reader.ts";
+
+/**
+ * How long the game must stay paused before she's told: the second play test
+ * had 107 pauses and resumes in an hour, from menus and switching windows.
+ */
+export const PAUSE_HOLD_MS = 5_000;
 
 /**
  * The file adapter: any game with a connector mod, through its pack. Each
@@ -78,7 +85,10 @@ export function createFileAdapter(
   let world: string | undefined;
   let alive: boolean | null = null;
   let paused: boolean | null = null;
+  // A pause only counts once it has held PAUSE_HOLD_MS: menus and alt-tabs flicker.
+  let pauseSeen: number | null = null;
   let status: { line: string; at: number } | null = null;
+  const more = new Map<string, string>();
 
   const resource = (name: string): unknown => {
     if (name === "self")
@@ -153,12 +163,16 @@ export function createFileAdapter(
     if (!running || !heartbeat || !current) return;
 
     const isPaused = heartbeat.paused === true;
-    if (paused !== null && isPaused !== paused)
-      game(
-        isPaused ? "The game is paused." : "The game is unpaused.",
-        isPaused ? "game_paused" : "game_resumed",
-      );
-    paused = isPaused;
+    pauseSeen = isPaused ? (pauseSeen ?? t) : null;
+    const held = isPaused && t - (pauseSeen ?? t) >= PAUSE_HOLD_MS;
+    if (paused === null) paused = isPaused;
+    else if (held && !paused) {
+      game("The game is paused.", "game_paused");
+      paused = true;
+    } else if (!isPaused && paused) {
+      game("The game is unpaused.", "game_resumed");
+      paused = false;
+    }
 
     if (pack.status && (!status || t - status.at >= pack.status.everyMs)) {
       const line = statusLine(pack, current, { player });
@@ -166,6 +180,11 @@ export function createFileAdapter(
         game(line, "status", "user");
         status = { line, at: t };
       }
+      for (const { kind, line: extra } of moreStatusLines(pack, current, { player }))
+        if (more.get(kind) !== extra) {
+          game(extra, kind as RaisedEvent["kind"], "user");
+          more.set(kind, extra);
+        }
     }
   };
 

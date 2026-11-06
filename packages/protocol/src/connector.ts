@@ -174,7 +174,7 @@ export interface EventRule {
   subject?: Subject;
   reaction?: Reaction;
   tally?: boolean;
-  /** The sentence she reads, `{path}` filled in from the event (`{player}`, `{time}`); `{path|1}` rounds a number, `{path|words}` turns an id into words. */
+  /** The sentence she reads, `{path}` filled in from the event (`{player}`, `{time}`); `{path|1}` rounds a number, `{path|words}` turns an id into words, `{path|list}` joins a list. */
   summary?: string;
 }
 
@@ -186,6 +186,9 @@ export interface PackEventType {
 }
 
 export type PackOs = "darwin" | "win32" | "linux";
+
+/** A "right now" template, or one that only applies when its `when` fits the state. */
+export type StatusTemplate = string | { when: Record<string, Condition>; summary: string };
 
 /** A game a connector mod plays: data only, no code runs from it. */
 export interface GamePack {
@@ -210,7 +213,16 @@ export interface GamePack {
    * one, else the heartbeat: the first template that fills, sent at most
    * every `everyMs`, and only when it changes.
    */
-  status?: { everyMs: number; summary: string[] };
+  status?: {
+    everyMs: number;
+    summary: StatusTemplate[];
+    /**
+     * More of "right now", each its own kind so she keeps the latest of each
+     * (what they carry, their body): sent with the status, each only when it
+     * changes. A line none of whose templates fill is left out.
+     */
+    more?: { kind: string; description: string; summary: StatusTemplate[] }[];
+  };
 }
 
 /** Kinds the file adapter sends for any game, besides the pack's. */
@@ -245,6 +257,8 @@ export function packManifest(pack: GamePack): AdapterManifest {
         ...(rule.reaction ? { reaction: rule.reaction } : {}),
       };
     }
+  for (const line of pack.status?.more ?? [])
+    events[line.kind] ??= { lane: "silent", description: line.description };
   return {
     id: pack.id,
     game: pack.game,
@@ -299,18 +313,41 @@ function fits(source: unknown, when: EventRule["when"]): boolean {
 /** Longest a filled-in value may be: game text (a name, a book title) is the player's, not ours. */
 const MAX_VALUE_CHARS = 60;
 
-/** "14:05" from the in-game clock, if it has the hour. */
+/**
+ * "3:05 pm" from the in-game clock, if it has the hour: the way it's said.
+ * As "15:05" she once took a mid-afternoon for the middle of the night.
+ */
 export function clockOf(time: GameTime | undefined): string | undefined {
   if (time?.hour === undefined) return undefined;
-  return `${String(time.hour).padStart(2, "0")}:${String(time.minute ?? 0).padStart(2, "0")}`;
+  const hour = ((time.hour % 24) + 24) % 24;
+  const minute = String(time.minute ?? 0).padStart(2, "0");
+  return `${hour % 12 || 12}:${minute} ${hour < 12 ? "am" : "pm"}`;
 }
+
+/** Most items a `list` shows; the rest are left out. */
+const MAX_LIST_ITEMS = 8;
 
 /**
  * A value as text, with underscores as spaces. `filter` is digits to round
- * a number to, or `words` for an id as words, hyphens too (`hang-sheet` →
- * "hang sheet").
+ * a number to, `words` for an id as words, hyphens too (`hang-sheet` →
+ * "hang sheet"), or `list` for a list (or an object's entries) joined with
+ * commas; an empty one has nothing to show.
  */
 function shown(value: unknown, filter: string | undefined): string | undefined {
+  if (filter === "list") {
+    // A list, or an object as its entries ("stress 2, unhappy 1").
+    const entries = Array.isArray(value)
+      ? value.map((item) => shown(item, undefined))
+      : value && typeof value === "object"
+        ? Object.entries(value).map(([key, v]) => {
+            const shownValue = shown(v, undefined);
+            return shownValue === undefined ? undefined : `${shown(key, "words")} ${shownValue}`;
+          })
+        : undefined;
+    if (!entries) return undefined;
+    const items = entries.filter((item): item is string => !!item).slice(0, MAX_LIST_ITEMS);
+    return items.length ? items.join(", ").slice(0, MAX_VALUE_CHARS * 3) : undefined;
+  }
   const digits = filter && /^\d$/.test(filter) ? Number(filter) : undefined;
   if (typeof value === "number" && Number.isFinite(value))
     return digits === undefined
@@ -340,7 +377,7 @@ export function fillTemplate(
 ): string | null {
   let missing = false;
   const text = template.replace(
-    /\{([A-Za-z_][\w.]*)(?:\|(\d|words))?\}/g,
+    /\{([A-Za-z_][\w.]*)(?:\|(\d|words|list))?\}/g,
     (_, path: string, filter?: string) => {
       const value = Object.hasOwn(extra, path)
         ? extra[path]
@@ -403,14 +440,15 @@ export function translateEvent(
   return null;
 }
 
-/** The first of `templates` that fills from `source`, or null. */
+/** The first of `templates` that fits and fills from `source`, or null. */
 export function firstFilled(
-  templates: readonly string[],
+  templates: readonly StatusTemplate[],
   source: unknown,
   extra: Record<string, string | undefined> = {},
 ): string | null {
   for (const template of templates) {
-    const text = fillTemplate(template, source, extra);
+    if (typeof template !== "string" && !fits(source, template.when)) continue;
+    const text = fillTemplate(typeof template === "string" ? template : template.summary, source, extra);
     if (text) return text;
   }
   return null;
@@ -419,6 +457,19 @@ export function firstFilled(
 /** The character's name from a heartbeat or state, through the pack. */
 export function playerName(pack: GamePack, source: unknown): string | undefined {
   return firstFilled(pack.player ?? [], source)?.slice(0, 32) || undefined;
+}
+
+/** The pack's other "right now" lines (status.more) that fill from the state, by kind. */
+export function moreStatusLines(
+  pack: GamePack,
+  source: Heartbeat | GameState,
+  context: TranslateContext = {},
+): { kind: string; line: string }[] {
+  const extra = { player: context.player, time: clockOf(source.game_time) };
+  return (pack.status?.more ?? []).flatMap(({ kind, summary }) => {
+    const line = firstFilled(summary, source, extra);
+    return line ? [{ kind, line }] : [];
+  });
 }
 
 /** Her "right now" from the state (or heartbeat), or null if the pack has none or it can't be filled in. */
