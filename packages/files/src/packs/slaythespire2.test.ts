@@ -85,7 +85,7 @@ test("a turn's start says what she'd need to follow the fight", () => {
     enemy_intents: ["Jaw Worm: attack for 11"],
   };
   expect(said(event("turn_started", { data }))?.summary).toBe(
-    "Turn 1 for Bob: 3 energy, 62 of 80 HP, 0 block. Enemies: Jaw Worm: attack for 11.",
+    "Turn 1 for Bob: 3 energy, 62 of 80 HP, 0 block. Enemies: Jaw Worm: attack for 11. Hand: Strike, Bash.",
   );
 });
 
@@ -188,6 +188,7 @@ test("right now: where they are, their kit and the fight", () => {
       kind: "kit",
       line: "Relics: Burning Blood. Potions: Fire Potion. 11 cards in the deck.",
     },
+    { kind: "screen", line: "No choice open." },
     { kind: "fight", line: "Fight, round 2: 3 of 3 energy, 5 block." },
     { kind: "enemies", line: "Enemies: Jaw Worm." },
     { kind: "hand", line: "Hand: Strike, Defend." },
@@ -252,6 +253,6 @@ test("a turn with no block still shows the enemies", () => {
     enemy_intents: ["Shrinker Beetle: strong debuff"],
   };
   expect(said(event("turn_started", { data }))?.summary).toBe(
-    "Turn 1 for Bob: 3 energy, 63 of 80 HP. Enemies: Shrinker Beetle: strong debuff.",
+    "Turn 1 for Bob: 3 energy, 63 of 80 HP. Enemies: Shrinker Beetle: strong debuff. Hand: Defend, Bash.",
   );
 });

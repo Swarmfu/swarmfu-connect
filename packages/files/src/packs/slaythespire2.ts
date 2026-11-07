@@ -217,16 +217,15 @@ export const slaythespire2: GamePack = {
     },
     turn_started: {
       description:
-        "A new turn in a fight: energy, HP, block, the hand and what the enemies mean to do.",
+        "A new turn in a fight: energy, HP, block, what's on them, the enemies and what they mean to do, and the hand. One she weighs in on.",
       rules: byWho(
         [
-          "Turn {data.turn} for {who}: {data.energy} energy, {data.hp} of {data.max_hp} HP, {data.block} block. Enemies: {data.enemy_intents|list}.",
-          // The mod leaves block out when it's 0.
-          "Turn {data.turn} for {who}: {data.energy} energy, {data.hp} of {data.max_hp} HP. Enemies: {data.enemy_intents|list}.",
-          "Turn {data.turn} for {who}: {data.energy} energy, {data.hp} of {data.max_hp} HP.",
+          "Turn {data.turn} for {who}: {data.energy} energy, {data.hp} of {data.max_hp} HP[[, {data.block} block]][[, with {data.powers|list}]]. Enemies: {data.enemies|list}.[[ Hand: {data.hand|list}.]]",
+          // Before connector 0.3.0: the enemies' intents only.
+          "Turn {data.turn} for {who}: {data.energy} energy, {data.hp} of {data.max_hp} HP[[, {data.block} block]].[[ Enemies: {data.enemy_intents|list}.]][[ Hand: {data.hand|list}.]]",
         ],
         "A new turn.",
-        { kind: "turn_started" },
+        { kind: "turn_started", lane: "respond" },
       ),
     },
     turn_ended: {
@@ -440,6 +439,76 @@ export const slaythespire2: GamePack = {
         "Someone rested.",
       ),
     },
+    reward_offered: {
+      description: "The rewards after a fight, before they pick: gold, cards to choose from, potions, relics. One she weighs in on.",
+      rules: [
+        {
+          lane: "respond",
+          summary:
+            "Rewards:[[ {data.gold} gold;]][[ pick a card: {data.cards|list};]][[ potions: {data.potions|list};]][[ relics: {data.relics|list};]][[ also {data.other|list}]]",
+        },
+      ],
+    },
+    shop_entered: {
+      description: "What the shop sells, with prices. One she weighs in on.",
+      rules: [
+        {
+          lane: "respond",
+          summary:
+            "The shop has[[ cards: {data.cards|list};]][[ relics: {data.relics|list};]][[ potions: {data.potions|list};]][[ card removal for {data.card_removal}]]",
+        },
+        { lane: "respond", summary: "They went into the shop." },
+      ],
+    },
+    choice_offered: {
+      description:
+        "A choice to make: an event, the map, a rest site, a card to pick, upgrade, transform or remove. One she weighs in on.",
+      rules: [
+        {
+          when: { "data.kind": "map" },
+          lane: "respond",
+          summary: "Where next on the map: {data.options|list}.[[ The boss is {data.boss}.]]",
+        },
+        {
+          lane: "respond",
+          summary: "[[{data.name}: ]][[{data.prompt|text} ]]Choices ({data.kind}): {data.options|list}.",
+        },
+        { lane: "respond", summary: "A choice to make: {data.kind}." },
+      ],
+    },
+    power_gained: {
+      description: "A power, buff or debuff landed on someone.",
+      rules: [
+        { summary: "{data.on} got {data.label|text}.", tally: true },
+        { summary: "{data.on} got {data.power} {data.amount}.", tally: true },
+        { summary: "Someone got {data.power}.", tally: true },
+      ],
+    },
+    power_changed: {
+      description: "A power, buff or debuff grew.",
+      rules: [
+        { summary: "{data.on}'s {data.power} is now {data.amount}.", tally: true },
+        { summary: "A power grew.", tally: true },
+      ],
+    },
+    power_lost: {
+      description: "A power, buff or debuff wore off.",
+      rules: [
+        { summary: "{data.on} lost {data.power}.", tally: true },
+        { summary: "A power wore off.", tally: true },
+      ],
+    },
+    returned_to_menu: {
+      description: "They left a run without it ending; it's saved.",
+      rules: [
+        { summary: "Back at the menu; the run is saved on act {data.act}, floor {data.floor}." },
+        { summary: "Back at the menu; the run is saved." },
+      ],
+    },
+    session_end: {
+      description: "The game was closed.",
+      rules: [{ summary: "Slay the Spire 2 was closed." }],
+    },
     control_changed: {
       description:
         "Whether she may act in the game changed, from the game's own switch.",
@@ -478,6 +547,22 @@ export const slaythespire2: GamePack = {
         summary: [
           "Relics: {player.relics|list}. Potions: {player.potions|list}. {player.deck_size} cards in the deck.",
           "Relics: {player.relics|list}. {player.deck_size} cards in the deck.",
+        ],
+      },
+      {
+        kind: "screen",
+        description: "The choice open on screen right now, if any: what it is and its options.",
+        summary: [
+          {
+            when: { "screen.kind": "map" },
+            summary: "On the map, choosing where next: {screen.options|list}.[[ The boss is {screen.boss}.]]",
+          },
+          {
+            when: { screen: { exists: true } },
+            summary: "On screen ({screen.kind}): [[{screen.name}: ]][[{screen.prompt|text} ]][[{screen.text|text} ]]Options: {screen.options|list}.",
+          },
+          { when: { screen: { exists: true } }, summary: "On screen: {screen.kind}." },
+          { when: { in_run: true }, summary: "No choice open." },
         ],
       },
       {

@@ -292,8 +292,14 @@ a list of `rules`; the first that fits is used:
   said, "3:05 pm"; `{path|1}` rounds a number to one decimal, `{path|words}`
   turns an id like `hang_sheet` into "hang sheet", and `{path|list}` joins a
   list, or an object's entries, with commas: "20 Nails, Rolling Papers",
-  "stress 2, unhappy 1"). A rule whose placeholders aren't all there doesn't
-  fit, so the next one is tried; an empty list doesn't fill.
+  "stress 2, unhappy 1"; items that are objects read as their `label` or
+  `name`, a list in a list reads with "or" between its items, and items with
+  commas of their own are kept apart with semicolons; `{path|text}` keeps a
+  longer passage, up to 300 characters, where a plain value is cut at 60).
+  A rule whose placeholders aren't all there doesn't fit, so the next one is
+  tried; an empty list doesn't fill. A part in `[[…]]` is left out instead
+  when something in it is missing: `"Rewards:[[ {data.gold} gold;]][[ potions:
+  {data.potions|list}]]"`. A summary is at most 600 characters.
 - `drop: true`: ignore events that fit.
 - `kind` (optional): the name she sees for it, if not the `type`.
 

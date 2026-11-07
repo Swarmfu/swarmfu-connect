@@ -274,7 +274,7 @@ export interface EventRule {
   subject?: Subject;
   reaction?: Reaction;
   tally?: boolean;
-  /** The sentence she reads, `{path}` filled in from the event (`{player}`, `{cohost}`, `{time}`); `{path|1}` rounds a number, `{path|words}` turns an id into words, `{path|list}` joins a list. */
+  /** The sentence she reads, `{path}` filled in from the event (`{player}`, `{cohost}`, `{time}`); `{path|1}` rounds a number, `{path|words}` turns an id into words, `{path|list}` joins a list, `{path|text}` keeps a longer passage; `[[…]]` is left out when something in it is missing. */
   summary?: string;
 }
 
@@ -412,10 +412,12 @@ function fits(source: unknown, when: EventRule["when"]): boolean {
 
 /** Longest a filled-in value may be: game text (a name, a book title) is the player's, not ours. */
 const MAX_VALUE_CHARS = 60;
+/** Longest a `text` value may be: a prompt or a passage of the game's own text. */
+const MAX_TEXT_CHARS = 300;
 /** Longest a list item may be: a label says what a thing is and does ("Bash (2 energy): Deal 8 damage. Apply 2 Vulnerable."). */
-const MAX_ITEM_CHARS = 120;
+const MAX_ITEM_CHARS = 160;
 /** Longest a whole list may be, so a line keeps room for its words around it. */
-const MAX_LIST_CHARS = 220;
+const MAX_LIST_CHARS = 480;
 
 /** Text cut to `max` at a word, with "…" when it's cut: never half a word. */
 function clipWords(text: string, max: number): string {
@@ -437,7 +439,7 @@ export function clockOf(time: GameTime | undefined): string | undefined {
 }
 
 /** Most items a `list` shows; the rest are left out. */
-const MAX_LIST_ITEMS = 8;
+const MAX_LIST_ITEMS = 12;
 
 /**
  * A value as text, with underscores as spaces. `filter` is digits to round
@@ -452,7 +454,10 @@ function shown(value: unknown, filter: string | undefined): string | undefined {
     // A list's items are text, or things with a `label` (or a `name`) a person reads.
     const entries = Array.isArray(value)
       ? value.map((item) =>
-          item && typeof item === "object" && !Array.isArray(item)
+          // A list in a list (several card rewards, each a choice) reads as its items, "or" between them.
+          Array.isArray(item)
+            ? item.map((inner) => shown(inner && typeof inner === "object" ? ((inner as Record<string, unknown>).label ?? (inner as Record<string, unknown>).name) : inner, "item")).filter(Boolean).join(" or ") || undefined
+            : item && typeof item === "object" && !Array.isArray(item)
             ? shown((item as Record<string, unknown>).label ?? (item as Record<string, unknown>).name, "item")
             : shown(item, "item"),
         )
@@ -467,9 +472,11 @@ function shown(value: unknown, filter: string | undefined): string | undefined {
     // Whole items while they fit; the rest are counted.
     let joined = "";
     let shownCount = 0;
+    // Items with commas of their own ("Inklet, 12 of 12 HP, attack 3") are kept apart with semicolons.
+    const between = items.some((item) => item.includes(",")) ? "; " : ", ";
     for (const item of items) {
       // An item's own full stop would meet the list's comma: "Deal 6 damage., Defend".
-      const next = (joined ? `${joined}, ` : "") + item.replace(/\.$/, "");
+      const next = (joined ? `${joined}${between}` : "") + item.replace(/\.$/, "");
       if (next.length > MAX_LIST_CHARS && shownCount) break;
       joined = clipWords(next, MAX_LIST_CHARS);
       shownCount++;
@@ -491,7 +498,9 @@ function shown(value: unknown, filter: string | undefined): string | undefined {
     .replace(filter === "words" ? /[_-]+/g : /_+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
-  return text ? clipWords(text, filter === "item" ? MAX_ITEM_CHARS : MAX_VALUE_CHARS) : undefined;
+  return text
+    ? clipWords(text, filter === "item" ? MAX_ITEM_CHARS : filter === "text" ? MAX_TEXT_CHARS : MAX_VALUE_CHARS)
+    : undefined;
 }
 
 /**
@@ -504,21 +513,34 @@ export function fillTemplate(
   source: unknown,
   extra: Record<string, string | undefined> = {},
 ): string | null {
-  let missing = false;
-  const text = template.replace(
-    /\{([A-Za-z_][\w.]*)(?:\|(\d|words|list))?\}/g,
-    (_, path: string, filter?: string) => {
-      const value = Object.hasOwn(extra, path)
-        ? extra[path]
-        : shown(valueAt(source, path), filter);
-      if (value === undefined) missing = true;
-      return value ?? "";
-    },
-  );
+  const fill = (part: string): string | null => {
+    let missing = false;
+    const filled = part.replace(
+      /\{([A-Za-z_][\w.]*)(?:\|(\d|words|list|text))?\}/g,
+      (_, path: string, filter?: string) => {
+        const value = Object.hasOwn(extra, path)
+          ? extra[path]
+          : shown(valueAt(source, path), filter);
+        if (value === undefined) missing = true;
+        return value ?? "";
+      },
+    );
+    return missing ? null : filled;
+  };
+  // `[[…]]` is a part that's left out when something in it has nothing to show ("[[, potions {data.potions|list}]]").
+  const text = fill(template.replace(/\[\[(.*?)\]\]/g, (_, part: string) => fill(part) ?? ""));
+  if (text === null) return null;
   // A line starts with a capital, whatever it starts with ("the Ironclad took…"),
   // and a value's own full stop doesn't double the template's ("heal 6 HP..").
-  const line = clipWords(text.trim().replace(/(?<!\.)\.\.(?!\.)/g, "."), MAX_SUMMARY_CHARS);
-  return missing ? null : line.charAt(0).toUpperCase() + line.slice(1);
+  // An optional part left out can leave a separator hanging at the end ("…; potions: ;").
+  const line = clipWords(
+    text
+      .trim()
+      .replace(/(?<!\.)\.\.(?!\.)/g, ".")
+      .replace(/\s*[;,]$/, "."),
+    MAX_SUMMARY_CHARS,
+  );
+  return line.charAt(0).toUpperCase() + line.slice(1);
 }
 
 /** A small stable hash, to keep event ids short. */

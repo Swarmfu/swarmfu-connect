@@ -41,7 +41,12 @@ export type Reaction = (typeof REACTIONS)[number];
 export const SUBJECTS = ["self", "user", "teammate", "other", "world"] as const;
 export type Subject = (typeof SUBJECTS)[number];
 
-export const MAX_SUMMARY_CHARS = 280;
+/**
+ * Longest a summary may be. A choice with its options (three cards and what
+ * each does, an event's text and its answers) needs room: at 280 they were
+ * cut to the first option.
+ */
+export const MAX_SUMMARY_CHARS = 600;
 
 /**
  * How she's in the game: as a player of her own (Minecraft: her bot, with
