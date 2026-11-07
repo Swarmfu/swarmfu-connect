@@ -229,7 +229,7 @@ describe the same run. swarmfu follows the streamer's copy and hers in the
 same `group` as one play session:
 
 - What happens comes from the **streamer's** copy. Mark her character there as
-  a `teammate` with its `data.player_name`, like any other player.
+  a `teammate` with its `data.player_name` (or `data.name`), like any other player.
 - From **her** copy, swarmfu reads only events whose `subject` is `cohost`,
   plus `decision_needed`, `command_result` and `control_changed`. Her copy
   should send her own character's events as `cohost`.

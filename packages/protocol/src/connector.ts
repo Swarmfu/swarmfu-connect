@@ -427,13 +427,19 @@ const MAX_LIST_ITEMS = 8;
  * A value as text, with underscores as spaces. `filter` is digits to round
  * a number to, `words` for an id as words, hyphens too (`hang-sheet` →
  * "hang sheet"), or `list` for a list (or an object's entries) joined with
- * commas; an empty one has nothing to show.
+ * commas (an item that's an object shows its `label` or `name`); an empty
+ * one has nothing to show.
  */
 function shown(value: unknown, filter: string | undefined): string | undefined {
   if (filter === "list") {
     // A list, or an object as its entries ("stress 2, unhappy 1").
+    // A list's items are text, or things with a `label` (or a `name`) a person reads.
     const entries = Array.isArray(value)
-      ? value.map((item) => shown(item, undefined))
+      ? value.map((item) =>
+          item && typeof item === "object" && !Array.isArray(item)
+            ? shown((item as Record<string, unknown>).label ?? (item as Record<string, unknown>).name, undefined)
+            : shown(item, undefined),
+        )
       : value && typeof value === "object"
         ? Object.entries(value).map(([key, v]) => {
             const shownValue = shown(v, undefined);

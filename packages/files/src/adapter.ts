@@ -260,7 +260,7 @@ export function createFileAdapter(
         (event) =>
           !cohost ||
           (event.subject !== "cohost" &&
-            !(event.subject === "teammate" && cohostName && valueAt(event, "data.player_name") === cohostName)),
+            !(event.subject === "teammate" && cohostName && (valueAt(event, "data.player_name") ?? valueAt(event, "data.name")) === cohostName)),
       ),
       ...(cohost?.events ?? []).filter((event) => event.subject === "cohost" || COHOST_TYPES.has(event.type)),
     ];

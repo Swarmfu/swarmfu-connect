@@ -158,6 +158,10 @@ test("a list shows its first few, an object its entries, and an empty one nothin
   expect(fillTemplate("{m|list}", { m: { stress: 2, heavy_load: 1 } })).toBe("stress 2, heavy load 1");
   expect(fillTemplate("{xs|list}", { xs: Array.from({ length: 12 }, (_, i) => `${i}`) })).toBe("0, 1, 2, 3, 4, 5, 6, 7");
   expect(fillTemplate("{xs|list}", { xs: [] })).toBeNull();
+  // Things in a list read as their label, else their name; an id never.
+  expect(fillTemplate("{xs|list}", { xs: [{ id: "h1", label: "Strike (1 energy)" }, { name: "Anchor" }, { id: "x" }] })).toBe(
+    "Strike (1 energy), Anchor",
+  );
   expect(fillTemplate("{m|list}", { m: {} })).toBeNull();
 });
 

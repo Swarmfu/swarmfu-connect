@@ -1,52 +1,207 @@
 import { expect, test } from "bun:test";
-import { packManifest, translateEvent, type ConnectorEvent } from "@swarmfu/connect-protocol";
+import {
+  moreStatusLines,
+  packManifest,
+  statusLine,
+  translateEvent,
+  type ConnectorEvent,
+  type GameState,
+} from "@swarmfu/connect-protocol";
 import { slaythespire2 } from "./slaythespire2.ts";
 
-const event = (type: string, over: Partial<ConnectorEvent> = {}): ConnectorEvent => ({
+const event = (
+  type: string,
+  over: Partial<ConnectorEvent> = {},
+): ConnectorEvent => ({
   v: 1,
   session: "s1",
   seq: 1,
   ts: 1,
   type,
-  run: { act: 1, floor: 3, room: "monster" },
+  run: { act: 1, floor: 3, room: "monster fight" },
   ...over,
 });
 const said = (e: ConnectorEvent) =>
-  translateEvent(slaythespire2, e, { player: "Ironclad Bob", cohost: "Mika" });
+  translateEvent(slaythespire2, e, { player: "Bob", cohost: "Mika" });
 
-test("each player's moves are named for whoever made them", () => {
-  const play = { card: "Bash", target: "Jaw Worm" };
-  expect(said(event("card_played", { data: play }))?.summary).toBe("Ironclad Bob played Bash on Jaw Worm.");
-  expect(said(event("card_played", { subject: "cohost", data: play }))).toMatchObject({
-    subject: "self",
-    summary: "Mika played Bash on Jaw Worm.",
+test("each player's moves are named for whoever made them, and kept apart", () => {
+  const turn = {
+    turn: 2,
+    cards_played: ["Bash on Jaw Worm", "Strike on Jaw Worm"],
+    damage_dealt: 14,
+    hp_lost: 3,
+  };
+  expect(said(event("turn_ended", { data: turn }))).toMatchObject({
+    kind: "turn_ended",
+    subject: "user",
+    summary:
+      "Bob's turn 2: played Bash on Jaw Worm, Strike on Jaw Worm; dealt 14, lost 3 HP.",
   });
-  expect(said(event("card_played", { subject: "teammate", data: { ...play, player_name: "Ana" } }))).toMatchObject({
+  expect(
+    said(event("turn_ended", { subject: "cohost", data: turn })),
+  ).toMatchObject({
+    kind: "turn_ended_hers",
+    subject: "self",
+    summary:
+      "Mika's turn 2: played Bash on Jaw Worm, Strike on Jaw Worm; dealt 14, lost 3 HP.",
+  });
+  expect(
+    said(
+      event("turn_ended", {
+        subject: "teammate",
+        data: { ...turn, name: "Ana" },
+      }),
+    ),
+  ).toMatchObject({
+    kind: "turn_ended_teammate",
     subject: "teammate",
-    summary: "Ana played Bash on Jaw Worm.",
+    summary:
+      "Ana's turn 2: played Bash on Jaw Worm, Strike on Jaw Worm; dealt 14, lost 3 HP.",
   });
 });
 
 test("her move with no name for her never names the streamer", () => {
-  const line = translateEvent(slaythespire2, event("card_played", { subject: "cohost", data: { card: "Bash" } }), {
-    player: "Ironclad Bob",
-  });
-  expect(line?.summary).toBe("Someone played Bash.");
+  const line = translateEvent(
+    slaythespire2,
+    event("relic_gained", { subject: "cohost", data: { relic: "Anchor" } }),
+    {
+      player: "Bob",
+    },
+  );
+  expect(line?.summary).toBe("Someone got Anchor.");
 });
 
-test("fields named differently still make a plainer line", () => {
-  expect(said(event("relic_gained", { data: { name: "Anchor" } }))?.summary).toBe("A relic was found.");
-  expect(said(event("room_entered", { run: undefined }))?.summary).toBe("They went into the next room.");
+test("a turn's start says what she'd need to follow the fight", () => {
+  const data = {
+    turn: 1,
+    energy: 3,
+    hp: 62,
+    max_hp: 80,
+    block: 0,
+    hand: [
+      { id: "h1", label: "Strike" },
+      { id: "h2", label: "Bash" },
+    ],
+    enemy_intents: ["Jaw Worm: attack for 11"],
+  };
+  expect(said(event("turn_started", { data }))?.summary).toBe(
+    "Turn 1 for Bob: 3 energy, 62 of 80 HP, 0 block. Enemies: Jaw Worm: attack for 11. Hand: Strike, Bash.",
+  );
 });
 
 test("a big hit is worth a word; small ones are tallied", () => {
-  const big = said(event("damage_taken", { data: { amount: 18, source: "Gremlin Nob" } }));
-  expect(big).toMatchObject({ lane: "respond", reaction: "flinch", summary: "Ironclad Bob took 18 damage from Gremlin Nob." });
-  expect(said(event("damage_taken", { data: { amount: 4 } }))).toMatchObject({ lane: "silent", tally: true });
+  const big = said(
+    event("damage_taken", {
+      data: {
+        damage: 18,
+        blocked: 2,
+        from: ["Gremlin Nob"],
+        hp: 44,
+        max_hp: 80,
+      },
+    }),
+  );
+  expect(big).toMatchObject({
+    lane: "respond",
+    reaction: "flinch",
+    summary: "Bob took 18 from Gremlin Nob, down to 44 of 80 HP.",
+  });
+  expect(
+    said(
+      event("damage_taken", {
+        data: { damage: 4, blocked: 6, from: ["Louse"], hp: 76, max_hp: 80 },
+      }),
+    ),
+  ).toMatchObject({
+    lane: "silent",
+    tally: true,
+    summary: "Bob took 4 from Louse (6 blocked), 76 of 80 HP left.",
+  });
+});
+
+test("a run's end says how it went", () => {
+  expect(
+    said(
+      event("run_ended", {
+        data: {
+          result: "defeat",
+          killed_by: "The Guardian",
+          act: 1,
+          floor: 16,
+        },
+      }),
+    )?.summary,
+  ).toBe("The run is over: killed by The Guardian on act 1, floor 16.");
+  expect(
+    said(
+      event("run_ended", {
+        data: { result: "victory", character: "Ironclad" },
+      }),
+    )?.reaction,
+  ).toBe("triumph");
+});
+
+test("fields missing still make a plainer line", () => {
+  expect(
+    said(event("relic_gained", { data: { name: "Anchor" } }))?.summary,
+  ).toBe("A relic was found.");
+  expect(said(event("room_entered", { data: {} }))?.summary).toBe(
+    "They went into the next room.",
+  );
+});
+
+test("right now: where they are, their kit and the fight", () => {
+  const state: GameState = {
+    v: 1,
+    session: "s1",
+    ts: 1,
+    in_run: true,
+    run: {
+      character: "Ironclad",
+      act: 1,
+      act_name: "Overgrowth",
+      floor: 5,
+      room: "monster fight",
+    },
+    player: {
+      hp: 62,
+      max_hp: 80,
+      gold: 99,
+      relics: ["Burning Blood"],
+      potions: ["Fire Potion"],
+      deck_size: 11,
+    },
+    combat: {
+      round: 2,
+      energy: 3,
+      max_energy: 3,
+      block: 5,
+      enemies: [{ name: "Jaw Worm", hp: 30 }],
+      hand: ["Strike", "Defend"],
+    },
+  };
+  expect(statusLine(slaythespire2, state, { player: "Bob" })).toBe(
+    "Bob is on act 1 (Overgrowth), floor 5, in monster fight: 62 of 80 HP, 99 gold.",
+  );
+  expect(moreStatusLines(slaythespire2, state, { player: "Bob" })).toEqual([
+    {
+      kind: "kit",
+      line: "Relics: Burning Blood. Potions: Fire Potion. 11 cards in the deck.",
+    },
+    {
+      kind: "fight",
+      line: "Fight, round 2: 3 of 3 energy, 5 block. Enemies: Jaw Worm. Hand: Strike, Defend.",
+    },
+  ]);
+  expect(
+    statusLine(slaythespire2, { v: 1, session: "s1", ts: 1, in_run: false }),
+  ).toBe("Not in a run: at the menu.");
 });
 
 test("her moves and their results wait for control", () => {
   expect(said(event("decision_needed", { subject: "cohost" }))).toBeNull();
   expect(said(event("command_result", { subject: "cohost" }))).toBeNull();
-  expect(Object.keys(packManifest(slaythespire2).events)).toContain("run_started");
+  const kinds = Object.keys(packManifest(slaythespire2).events);
+  expect(kinds).toContain("turn_ended_hers");
+  expect(kinds).toContain("kit");
 });
