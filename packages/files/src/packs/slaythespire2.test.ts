@@ -192,6 +192,7 @@ test("right now: where they are, their kit and the fight", () => {
       kind: "fight",
       line: "Fight, round 2: 3 of 3 energy, 5 block. Enemies: Jaw Worm. Hand: Strike, Defend.",
     },
+    { kind: "effects", line: "Nothing on Bob right now." },
   ]);
   expect(
     statusLine(slaythespire2, { v: 1, session: "s1", ts: 1, in_run: false }),
@@ -213,5 +214,19 @@ test("before their name is known they're the player, and an unknown character is
   );
   expect(plain(event("run_started", { subject: "player", data: { character: "unknown", ascension: 0 } }))?.summary).toBe(
     "A new run started, on ascension 0.",
+  );
+});
+
+test("the character is named as the game names it, and an unknown one isn't", async () => {
+  const { playerName } = await import("@swarmfu/connect-protocol");
+  expect(playerName(slaythespire2, { run: { character: "The Ironclad" } })).toBe("The Ironclad");
+  expect(playerName(slaythespire2, { run: { character: "unknown" } })).toBe("The player");
+  expect(playerName(slaythespire2, { player: { name: "Zac" }, run: { character: "The Ironclad" } })).toBe("Zac");
+});
+
+test("a turn with no block still shows the hand", () => {
+  const data = { turn: 1, energy: 3, hp: 63, max_hp: 80, hand: ["Defend", "Bash"], enemy_intents: ["Shrinker Beetle: strong debuff"] };
+  expect(said(event("turn_started", { data }))?.summary).toBe(
+    "Turn 1 for Bob: 3 energy, 63 of 80 HP. Enemies: Shrinker Beetle: strong debuff. Hand: Defend, Bash.",
   );
 });

@@ -304,7 +304,7 @@ export interface GamePack {
    * The character's name, from the heartbeat (or the state file): templates
    * tried in order, e.g. `["{player.username}", "{player.forename} {player.surname}"]`.
    */
-  player?: string[];
+  player?: StatusTemplate[];
   /** Where the manifest keeps what tells one world from another (`game.save`). */
   world?: string;
   events: Record<string, PackEventType>;

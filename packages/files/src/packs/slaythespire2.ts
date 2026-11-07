@@ -100,7 +100,8 @@ export const slaythespire2: GamePack = {
     win32: "~/AppData/Roaming/SlayTheSpire2/swarmfu",
     linux: "~/.local/share/SlayTheSpire2/swarmfu",
   },
-  player: ["{player.name}", "the {run.character}"],
+  // The character's name already has its article ("The Ironclad"); before the game knows it, it's "unknown".
+  player: ["{player.name}", { when: { "run.character": "unknown" }, summary: "the player" }, "{run.character}"],
   events: {
     session_start: {
       description: "The game opened with the connector running.",
@@ -115,7 +116,7 @@ export const slaythespire2: GamePack = {
         {
           when: { "data.continued": true },
           lane: "respond",
-          summary: "{player} picked up their run as the {data.character}.",
+          summary: "{player} picked up their run: act {run.act}, floor {run.floor}.",
         },
         {
           when: { "data.players": { exists: true } },
@@ -131,9 +132,9 @@ export const slaythespire2: GamePack = {
         {
           lane: "respond",
           summary:
-            "{player} started a run as the {data.character} on ascension {data.ascension}.",
+            "A run started as {data.character}, on ascension {data.ascension}.",
         },
-        { lane: "respond", summary: "A run started as the {data.character}." },
+        { lane: "respond", summary: "A run started as {data.character}." },
         { lane: "respond", summary: "A new run started." },
       ],
     },
@@ -144,7 +145,7 @@ export const slaythespire2: GamePack = {
           when: { "data.result": "victory" },
           lane: "respond",
           reaction: "triumph",
-          summary: "The run is won, as the {data.character}!",
+          summary: "The run is won, as {data.character}!",
         },
         {
           when: { "data.result": "victory" },
@@ -220,6 +221,8 @@ export const slaythespire2: GamePack = {
       rules: byWho(
         [
           "Turn {data.turn} for {who}: {data.energy} energy, {data.hp} of {data.max_hp} HP, {data.block} block. Enemies: {data.enemy_intents|list}. Hand: {data.hand|list}.",
+          // The mod leaves block out when it's 0.
+          "Turn {data.turn} for {who}: {data.energy} energy, {data.hp} of {data.max_hp} HP. Enemies: {data.enemy_intents|list}. Hand: {data.hand|list}.",
           "Turn {data.turn} for {who}: {data.energy} energy, {data.hp} of {data.max_hp} HP. Enemies: {data.enemy_intents|list}.",
           "Turn {data.turn} for {who}: {data.energy} energy, {data.hp} of {data.max_hp} HP.",
         ],
@@ -490,9 +493,23 @@ export const slaythespire2: GamePack = {
           {
             when: { combat: { exists: true } },
             summary:
+              "Fight, round {combat.round}: {combat.energy} of {combat.max_energy} energy. Enemies: {combat.enemies|list}. Hand: {combat.hand|list}.",
+          },
+          {
+            when: { combat: { exists: true } },
+            summary:
               "Fight, round {combat.round}: {combat.energy} of {combat.max_energy} energy. Enemies: {combat.enemies|list}.",
           },
           { when: { in_run: true }, summary: "Not in a fight." },
+        ],
+      },
+      {
+        kind: "effects",
+        description: "The powers, buffs and debuffs on them in a fight (Strength, Vulnerable, Shrink).",
+        summary: [
+          { when: { "combat.powers": { exists: true } }, summary: "On {player}: {combat.powers|list}." },
+          { when: { combat: { exists: true } }, summary: "Nothing on {player} right now." },
+          { when: { in_run: true }, summary: "No fight, so nothing on {player}." },
         ],
       },
     ],
