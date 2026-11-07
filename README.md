@@ -35,6 +35,7 @@ Minecraft, where she joins as a player of her own, comes as a separate download,
 | Game | How | Pack |
 | --- | --- | --- |
 | Project Zomboid (Build 42) | the `swarmfu-connector` mod | [`projectzomboid.ts`](packages/files/src/packs/projectzomboid.ts) |
+| Slay the Spire 2 (in progress) | the `swarmfu-connector` mod, including co-op with her in the lobby | [`slaythespire2.ts`](packages/files/src/packs/slaythespire2.ts) (a draft until the mod's first build) |
 | Minecraft: Java Edition | she joins as a bot (Mineflayer) | [`packages/minecraft`](packages/minecraft) |
 
 **Adding a game** is usually a mod that writes a few files, plus a pack: a short, declarative description of what each of the mod's events means to her. No Swarmfu code. Start with the [mod guide](docs/mod-guide.md), then [CONTRIBUTING.md](CONTRIBUTING.md). For a game that needs more than files (she plays in it, or it has an API), see [writing an adapter](docs/adapters.md).

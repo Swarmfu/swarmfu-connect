@@ -34,8 +34,11 @@ export const REACTIONS = [
 ] as const;
 export type Reaction = (typeof REACTIONS)[number];
 
-/** Whose event it is: hers, the user's (the player she's with), or someone else's. */
-export const SUBJECTS = ["self", "user", "other", "world"] as const;
+/**
+ * Whose event it is: hers, the user's (the player she's with), another human
+ * on their team (co-op), someone or something else, or nobody in particular.
+ */
+export const SUBJECTS = ["self", "user", "teammate", "other", "world"] as const;
 export type Subject = (typeof SUBJECTS)[number];
 
 export const MAX_SUMMARY_CHARS = 280;

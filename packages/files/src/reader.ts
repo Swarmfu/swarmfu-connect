@@ -27,6 +27,8 @@ export interface ReaderOptions {
   dir: string;
   /** Read a session already being written from its first line, not just what's added from now. */
   fromStart?: boolean;
+  /** A session the manifest says started at or after this is read from its first line: it began while we watched. */
+  since?: number;
   log?: (line: string) => void;
 }
 
@@ -62,6 +64,7 @@ function sizeOf(path: string): number | null {
 export class ConnectorReader {
   readonly #dir: string;
   readonly #fromStart: boolean;
+  readonly #since: number | undefined;
   readonly #log: (line: string) => void;
   #manifest: ConnectorManifest | null = null;
   #session: string | null = null;
@@ -76,6 +79,7 @@ export class ConnectorReader {
   constructor(options: ReaderOptions) {
     this.#dir = options.dir;
     this.#fromStart = options.fromStart ?? false;
+    this.#since = options.since;
     this.#log = options.log ?? ((line) => console.error(line));
   }
 
@@ -100,7 +104,8 @@ export class ConnectorReader {
           this.#lastSeq = 0;
         }
         // Attaching to a session already running: only what's added from now, unless asked for all of it.
-        const skip = !this.#attached && !this.#fromStart;
+        const begunSince = this.#since !== undefined && (manifest.started_at ?? -Infinity) >= this.#since;
+        const skip = !this.#attached && !this.#fromStart && !begunSince;
         this.#offset = skip ? (sizeOf(join(this.#dir, this.#file)) ?? 0) : 0;
       }
       this.#attached = true;

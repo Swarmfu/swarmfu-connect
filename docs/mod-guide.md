@@ -87,7 +87,9 @@ These came from real sample data. Add to them when you find a new one.
 ## The file protocol
 
 All files go in one folder the game lets mods write to, e.g.
-`~/Zomboid/Lua/swarmfu-connector/`. The pack says where it is on each OS.
+`~/Zomboid/Lua/swarmfu-connector/`. The pack says where it is on each OS. A
+game that can write anywhere also leaves a pointer to it (see "Finding the
+files").
 
 | File | Written | Holds |
 | --- | --- | --- |
@@ -140,7 +142,7 @@ catches half-written and reads it again on its next look, half a second later.
 | `ts` | real time, epoch milliseconds |
 | `game_time` | the in-game clock, if the game has one: any of `year`, `month`, `day`, `hour`, `minute` |
 | `type` | snake_case, declared in your pack |
-| `subject` | `player`, `other` or `world` |
+| `subject` | `player` (the person streaming), `cohost` (her own character, in co-op), `teammate` (another human on the team, with `data.player_name`), `other` (someone or something not on the team) or `world` |
 | `data` | the event's detail, small and flat |
 
 Always send `session_start` first in a session (with the game version and the
@@ -171,6 +173,72 @@ crashes never sends it, so the heartbeat is what says it's gone.
 
 Debug files (every heartbeat of a session, say) are fine while you build, as
 long as they have other names and are off in a release.
+
+### Finding the files
+
+A game that can only write inside its own folder (Project Zomboid) needs
+nothing more: the pack names the folder. A game that can write anywhere also
+leaves a **pointer file**, so swarmfu finds it wherever it is and can tell
+two running copies apart.
+
+Pointers go in `~/.swarmfu/connectors/` (`%USERPROFILE%\.swarmfu\connectors\`
+on Windows), one per running copy of the game, named `<source>-<instance>.json`.
+Write it when the game starts and remove it when it closes cleanly:
+
+```json
+{ "v": 1, "source": "mygame", "connector": "swarmfu-connector",
+  "instance": "a91f", "root": "/Users/me/Library/Application Support/MyGame/swarmfu",
+  "pid": 48213, "updated": 1762300123456 }
+```
+
+- `root` is the folder holding that copy's `manifest.json`, as an absolute path.
+- A pointer whose folder's heartbeat has stopped is treated as closed, so a
+  crash that leaves one behind does no harm.
+
+### More in the manifest
+
+All optional. Without them she watches a single copy of the game.
+
+```json
+{
+  "capabilities": ["events", "state", "control"],
+  "instance": "a91f",
+  "perspective": "cohost",
+  "group": "run 7F3K2",
+  "commands_file": "commands-1762300000000-48213.log",
+  "speech": { "machine_keys": ["id", "*_id", "args"] }
+}
+```
+
+- `capabilities`: what the connector does. `control` means it reads commands
+  from `commands_file` (coming with control; she only watches for now).
+- `instance`: unique per running copy of the game, as in its pointer.
+- `perspective`: whose copy this is. `streamer` (the default) or `cohost`, her
+  own copy, joined to the streamer's game as another player.
+- `group`: copies with the same group are in one shared session, a co-op lobby.
+- `commands_file`: where commands will go, a bare file name, new each session.
+- `speech.machine_keys`: keys that are for machines and never read to her:
+  exact names, or `*_id` for any ending in `_id`. The default is
+  `id`, `*_id` and `args`. Give every value a person would read its own
+  `label` or name instead.
+
+### Co-op
+
+When she plays her own copy of the game in the streamer's lobby, both copies
+describe the same run. swarmfu follows the streamer's copy and hers in the
+same `group` as one play session:
+
+- What happens comes from the **streamer's** copy. Mark her character there as
+  a `teammate` with its `data.player_name`, like any other player.
+- From **her** copy, swarmfu reads only events whose `subject` is `cohost`,
+  plus `decision_needed`, `command_result` and `control_changed`. Her copy
+  should send her own character's events as `cohost`.
+- swarmfu drops the streamer copy's `teammate` events whose `player_name` is
+  her character's name (from her copy's heartbeat, through the pack's
+  `player` templates), since her copy tells those.
+- With only her copy running, it tells everything.
+
+In a pack, `{cohost}` is her character's name and `{player}` the streamer's.
 
 ## Game packs
 

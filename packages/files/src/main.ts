@@ -3,6 +3,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { parseArgs } from "node:util";
 import { createFileAdapter } from "./adapter.ts";
 import { PACKS, packFolder } from "./packs/index.ts";
+import { pointersFolder } from "./pointers.ts";
 
 /**
  * Runs the file adapter as an MCP server on stdio, the way the bridge
@@ -27,7 +28,8 @@ const fail = (message: string): never => {
 };
 
 const pack = PACKS[values.pack ?? ""] ?? fail(`--pack must be one of: ${Object.keys(PACKS).join(", ")}`);
-const dir = values.dir ?? packFolder(pack) ?? fail(`${pack.game}'s pack has no folder for ${process.platform}; pass --dir.`);
+// Unset, the adapter finds it: the pack's folder, and the pointer files a mod that can write anywhere leaves.
+const dir = values.dir;
 const pollMs = Math.max(100, Number(values.poll) || 500);
 
 const adapter = createFileAdapter(pack, {
@@ -37,7 +39,10 @@ const adapter = createFileAdapter(pack, {
   log: (line) => console.error(`[files] ${line}`),
 });
 
-console.error(`[files] following ${pack.game} in ${dir}`);
+const folder = packFolder(pack);
+console.error(
+  `[files] following ${pack.game} in ${dir ?? [folder, `the pointers in ${pointersFolder()}`].filter(Boolean).join(" and ")}`,
+);
 // Connected first: an event raised before there's a connection is never sent, and the first poll has the most.
 await adapter.server.connect(new StdioServerTransport());
 adapter.poll();

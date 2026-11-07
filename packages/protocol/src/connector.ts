@@ -20,14 +20,31 @@ import {
 
 export const CONNECTOR_PROTOCOL = 1;
 
-/** Whose an event is, as a connector says it: the person playing, someone else, or the world. */
-export const CONNECTOR_SUBJECTS = ["player", "other", "world"] as const;
+/**
+ * Whose an event is, as a connector says it: the person streaming, her own
+ * character (her copy of the game, in co-op), another human on the team,
+ * someone or something not on the team, or the world.
+ */
+export const CONNECTOR_SUBJECTS = ["player", "cohost", "teammate", "other", "world"] as const;
 export type ConnectorSubject = (typeof CONNECTOR_SUBJECTS)[number];
 const SUBJECT_OF: Record<(typeof CONNECTOR_SUBJECTS)[number], Subject> = {
   player: "user",
+  cohost: "self",
+  teammate: "teammate",
   other: "other",
   world: "world",
 };
+
+/** What a connector can do, from its manifest: write events, a state file, and read commands. */
+export const CONNECTOR_CAPABILITIES = ["events", "state", "control"] as const;
+export type ConnectorCapability = (typeof CONNECTOR_CAPABILITIES)[number];
+
+/** Whose copy of the game a connector is in: the person streaming, or hers, joined as another player. */
+export const PERSPECTIVES = ["streamer", "cohost"] as const;
+export type Perspective = (typeof PERSPECTIVES)[number];
+
+/** Keys that are for machines and never read aloud, unless a manifest says otherwise. */
+export const DEFAULT_MACHINE_KEYS = ["id", "*_id", "args"] as const;
 
 /** The in-game clock, as much of it as the game has. */
 export interface GameTime {
@@ -55,7 +72,10 @@ const fileName = z
   .regex(/^[\w-][\w.-]{0,127}$/)
   .refine((name) => !name.includes(".."), "not a file name");
 
-/** `manifest.json`: the session and the events file being written. */
+/**
+ * `manifest.json`: the session and the events file being written. The rest
+ * is optional, and missing means a single copy of the game she only watches.
+ */
 export interface ConnectorManifest {
   v: number;
   source: string;
@@ -66,6 +86,20 @@ export interface ConnectorManifest {
   /** A bare file name in this folder. */
   events_file: string;
   game?: Record<string, unknown>;
+  /** What it does; `control` means it reads commands from `commands_file`. */
+  capabilities?: string[];
+  /** Unique per running copy of the game. */
+  instance?: string;
+  /** Whose copy this is; unset is the streamer's. */
+  perspective?: Perspective;
+  /** Copies with the same group are in one shared session, a co-op lobby. */
+  group?: string;
+  /** Where commands go: a bare file name in this folder, new each session. */
+  commands_file?: string;
+  speech?: {
+    /** Keys never read aloud: exact, or `*_id` for any ending in `_id`. */
+    machine_keys?: string[];
+  };
   [key: string]: unknown;
 }
 export const connectorManifestSchema: z.ZodType<ConnectorManifest> = z
@@ -78,8 +112,70 @@ export const connectorManifestSchema: z.ZodType<ConnectorManifest> = z
     started_at: z.number().optional(),
     events_file: fileName,
     game: z.record(z.string(), z.unknown()).optional(),
+    capabilities: z.array(z.string().max(32)).max(16).optional(),
+    instance: z.string().min(1).max(64).optional(),
+    perspective: z.enum(PERSPECTIVES).optional(),
+    group: z.string().min(1).max(128).optional(),
+    commands_file: fileName.optional(),
+    speech: z
+      .object({ machine_keys: z.array(z.string().min(1).max(64)).max(32).optional() })
+      .loose()
+      .optional(),
   })
   .loose();
+
+/** Where a connector that can write anywhere leaves its pointers: `connectors` in swarmfu's folder. */
+export const POINTERS_FOLDER = "connectors";
+
+/**
+ * A pointer file, `<source>-<instance>.json` in the pointers folder: one per
+ * running copy of a game, saying which folder holds its manifest. For games
+ * that can write outside their own folder; the others keep their pack's.
+ */
+export interface ConnectorPointer {
+  v: number;
+  source: string;
+  connector?: string;
+  instance: string;
+  /** The folder holding that copy's manifest.json: an absolute path. */
+  root: string;
+  pid?: number;
+  updated?: number;
+  [key: string]: unknown;
+}
+export const connectorPointerSchema: z.ZodType<ConnectorPointer> = z
+  .object({
+    v: z.number(),
+    source: z.string().min(1).max(48),
+    connector: z.string().max(64).optional(),
+    instance: z.string().min(1).max(64),
+    root: z
+      .string()
+      .min(1)
+      .max(1024)
+      .refine((path) => /^(\/|[A-Za-z]:[\\/]|\\\\)/.test(path), "not an absolute path"),
+    pid: z.number().int().optional(),
+    updated: z.number().optional(),
+  })
+  .loose();
+
+/** Whether `key` is one the manifest (or the default) marks as for machines only. */
+export function isMachineKey(key: string, patterns: readonly string[] = DEFAULT_MACHINE_KEYS): boolean {
+  return patterns.some((pattern) =>
+    pattern.startsWith("*") ? key.endsWith(pattern.slice(1)) : pattern.endsWith("*") ? key.startsWith(pattern.slice(0, -1)) : key === pattern,
+  );
+}
+
+/** A value with every machine-only key taken out, at any depth: what she may read. */
+export function withoutMachineKeys(value: unknown, patterns: readonly string[] = DEFAULT_MACHINE_KEYS): unknown {
+  if (Array.isArray(value)) return value.map((item) => withoutMachineKeys(item, patterns));
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([key]) => !isMachineKey(key, patterns))
+      .map(([key, item]) => [key, withoutMachineKeys(item, patterns)]),
+  );
+}
 
 /** One line of the events file. */
 export interface ConnectorEvent {
@@ -174,7 +270,7 @@ export interface EventRule {
   subject?: Subject;
   reaction?: Reaction;
   tally?: boolean;
-  /** The sentence she reads, `{path}` filled in from the event (`{player}`, `{time}`); `{path|1}` rounds a number, `{path|words}` turns an id into words, `{path|list}` joins a list. */
+  /** The sentence she reads, `{path}` filled in from the event (`{player}`, `{cohost}`, `{time}`); `{path|1}` rounds a number, `{path|words}` turns an id into words, `{path|list}` joins a list. */
   summary?: string;
 }
 
@@ -397,9 +493,10 @@ function shortHash(text: string): string {
   return (hash >>> 0).toString(36);
 }
 
-/** What the adapter knows besides the event: the character's name. */
+/** What the adapter knows besides the event: the streamer's character's name, and hers in co-op. */
 export interface TranslateContext {
   player?: string;
+  cohost?: string;
 }
 
 /**
@@ -414,7 +511,7 @@ export function translateEvent(
 ): GameEvent | null {
   const spec = pack.events[event.type];
   if (!spec) return null;
-  const extra = { player: context.player, time: clockOf(event.game_time) };
+  const extra = { player: context.player, cohost: context.cohost, time: clockOf(event.game_time) };
   for (const rule of spec.rules) {
     if (!fits(event, rule.when)) continue;
     if (rule.drop) return null;
@@ -465,7 +562,7 @@ export function moreStatusLines(
   source: Heartbeat | GameState,
   context: TranslateContext = {},
 ): { kind: string; line: string }[] {
-  const extra = { player: context.player, time: clockOf(source.game_time) };
+  const extra = { player: context.player, cohost: context.cohost, time: clockOf(source.game_time) };
   return (pack.status?.more ?? []).flatMap(({ kind, summary }) => {
     const line = firstFilled(summary, source, extra);
     return line ? [{ kind, line }] : [];
@@ -481,6 +578,7 @@ export function statusLine(
   if (!pack.status) return null;
   return firstFilled(pack.status.summary, source, {
     player: context.player,
+    cohost: context.cohost,
     time: clockOf(source.game_time),
   });
 }

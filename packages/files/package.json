@@ -10,7 +10,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./main": "./src/main.ts",
-    "./packs": "./src/packs/index.ts"
+    "./packs": "./src/packs/index.ts",
+    "./pointers": "./src/pointers.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.1",

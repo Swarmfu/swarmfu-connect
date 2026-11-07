@@ -58,6 +58,18 @@ test("a game counts as installed once its connector's folder exists", () => {
   expect(existsSync(join(home, ".swarmfu"))).toBe(false);
 });
 
+test("a game with no folder yet counts as installed once a copy leaves a pointer", () => {
+  const home = mkdtempSync(join(tmpdir(), "home-"));
+  dirs.push(home);
+  const root = join(home, "elsewhere", "swarmfu");
+  mkdirSync(join(home, ".swarmfu", "connectors"), { recursive: true });
+  writeFileSync(
+    join(home, ".swarmfu", "connectors", "slaythespire2-a91f.json"),
+    JSON.stringify({ v: 1, source: "slaythespire2", instance: "a91f", root }),
+  );
+  expect(installedGames("darwin", home)).toEqual([{ id: "slaythespire2", name: "Slay the Spire 2", folder: root }]);
+});
+
 test("release versions compare by number", () => {
   expect(newer("0.2.0", "0.1.9")).toBe(true);
   expect(newer("0.10.0", "0.9.0")).toBe(true);
