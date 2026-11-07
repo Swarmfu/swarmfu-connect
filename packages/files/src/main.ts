@@ -8,7 +8,7 @@ import { pointersFolder } from "./pointers.ts";
 /**
  * Runs the file adapter as an MCP server on stdio, the way the bridge
  * launches adapters: `bun src/main.ts --pack projectzomboid [--dir <folder>]
- * [--from-start] [--poll 500] [--control]`. Events are logged to stderr; stdout is the
+ * [--from-start] [--poll 500]`. Events are logged to stderr; stdout is the
  * MCP channel.
  */
 
@@ -19,8 +19,6 @@ const { values } = parseArgs({
     "from-start": { type: "boolean", default: false },
     poll: { type: "string", default: "500" },
     quiet: { type: "boolean", default: false },
-    // She may drive the streamer's own copy of the game, not only one of her own.
-    control: { type: "boolean", default: false },
   },
 });
 
@@ -37,7 +35,6 @@ const pollMs = Math.max(100, Number(values.poll) || 500);
 const adapter = createFileAdapter(pack, {
   dir,
   fromStart: values["from-start"],
-  control: values.control,
   onEvent: values.quiet ? undefined : (event) => console.error(`[${event.lane}${event.tally ? ", tally" : ""}] ${event.kind}: ${event.summary}`),
   log: (line) => console.error(`[files] ${line}`),
 });

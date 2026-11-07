@@ -59,12 +59,6 @@ export interface FileAdapterOptions {
   now?: () => number;
   onEvent?: (event: GameEvent) => void;
   log?: (line: string) => void;
-  /**
-   * The streamer lets her drive their own copy of the game (single player),
-   * not only one of her own (co-op): the first of control's two keys, the
-   * other being the game's own setting.
-   */
-  control?: boolean;
   /** How long a move waits for the game's answer (tests make it short). */
   moveWaitMs?: number;
 }
@@ -251,14 +245,15 @@ export function createFileAdapter(
     log,
   });
   /**
-   * The copy she plays: hers in co-op, or the streamer's when they've let her
-   * drive it. Its connector must say it takes commands.
+   * The copy she plays: hers in co-op, else the streamer's when its connector
+   * takes commands. Whether she may is the streamer's say on the site ("Let
+   * her play") and the game's own control setting, not swarmfu's.
    */
   const controlled = (): Instance | undefined => {
     const { main, cohost } = following;
     const takes = (i: Instance | undefined) => !!i?.manifest?.capabilities?.includes("control") && !!i.manifest.commands_file;
     if (takes(cohost)) return cohost;
-    if (main && takes(main) && (isCohost(main) || options.control)) return main;
+    if (takes(main)) return main;
     return undefined;
   };
   /** The decision open in a copy now, read straight from its state file. */
@@ -279,7 +274,7 @@ export function createFileAdapter(
   const act = async (input: { action: string; args?: Record<string, string>; say?: string }): Promise<string> => {
     const instance = controlled();
     if (!instance)
-      return options.control || following.cohost
+      return following.cohost
         ? "You can't play right now: the game you'd play isn't taking moves."
         : "You aren't playing: there's no copy of the game for you to play.";
     const control = controlOf(instance.heartbeat);

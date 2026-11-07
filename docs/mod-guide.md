@@ -244,10 +244,10 @@ In a pack, `{cohost}` is her character's name and `{player}` the streamer's.
 
 A connector that takes commands says so: `control` in the manifest's
 `capabilities`, and a `commands_file` (a bare file name, new each session).
-Its heartbeat carries `control: {enabled, mode}`; control is off until both
-the game's own setting and the streamer allow it. Her own copy (`perspective:
-"cohost"`) is hers to play; the streamer's own copy only when they start
-swarmfu with `-- --control`.
+Its heartbeat carries `control: {enabled, mode}`. Control takes two keys: the
+game's own setting, and "Let her play" on the site's Game card. She plays her
+own copy (`perspective: "cohost"`) in co-op, else the streamer's copy when its
+connector takes commands.
 
 - **What she can do:** while the player she drives has something to decide,
   `state.json` has a `decision`: `{id, kind, ready, prompt, actions[{action,
