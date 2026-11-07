@@ -67,3 +67,28 @@ test("a move that doesn't fit says why, in words she can use", () => {
   expect(resolveMove(decision, "play card", {})).toMatchObject({ error: expect.stringContaining("Say which card:") });
   expect(resolveMove(decision, "end turn", { card: "Bash" })).toEqual({ error: '"end turn" takes nothing; leave out "card".' });
 });
+
+test("a label written with or without its end punctuation is the same choice", () => {
+  const event: Decision = {
+    id: "d9",
+    kind: "event",
+    actions: [
+      {
+        action: "choose",
+        params: {
+          option: {
+            options: [
+              { id: "o0", label: "Smash: Heal 20 HP" },
+              { id: "o1", label: "Decipher: Lose 3 Max HP. Upgrade a random card" },
+            ],
+          },
+        },
+      },
+    ],
+  };
+  // Seventh Slay the Spire 2 test: refused twice for the period at the end.
+  expect(resolveMove(event, "choose", { option: "Decipher: Lose 3 Max HP. Upgrade a random card." })).toEqual({
+    action: "choose",
+    args: { option: "o1" },
+  });
+});

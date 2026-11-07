@@ -156,7 +156,11 @@ export function decisionLine(
   return `${space > max / 2 ? cut.slice(0, space) : cut}…`;
 }
 
-const normal = (text: string) => plain(text).toLowerCase();
+/** Lowercased, without the end punctuation a label may or may not have been written with ("…a random card."). */
+const normal = (text: string) =>
+  plain(text)
+    .toLowerCase()
+    .replace(/[\s.!,;:]+$/, "");
 /** A label's name: the part before its details ("Bash (2 energy): Deal 8" → "bash"). */
 const nameOf = (label: string) =>
   normal(label)
