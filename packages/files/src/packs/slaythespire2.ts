@@ -220,9 +220,8 @@ export const slaythespire2: GamePack = {
         "A new turn in a fight: energy, HP, block, the hand and what the enemies mean to do.",
       rules: byWho(
         [
-          "Turn {data.turn} for {who}: {data.energy} energy, {data.hp} of {data.max_hp} HP, {data.block} block. Enemies: {data.enemy_intents|list}. Hand: {data.hand|list}.",
+          "Turn {data.turn} for {who}: {data.energy} energy, {data.hp} of {data.max_hp} HP, {data.block} block. Enemies: {data.enemy_intents|list}.",
           // The mod leaves block out when it's 0.
-          "Turn {data.turn} for {who}: {data.energy} energy, {data.hp} of {data.max_hp} HP. Enemies: {data.enemy_intents|list}. Hand: {data.hand|list}.",
           "Turn {data.turn} for {who}: {data.energy} energy, {data.hp} of {data.max_hp} HP. Enemies: {data.enemy_intents|list}.",
           "Turn {data.turn} for {who}: {data.energy} energy, {data.hp} of {data.max_hp} HP.",
         ],
@@ -483,24 +482,32 @@ export const slaythespire2: GamePack = {
       },
       {
         kind: "fight",
-        description: "The fight they're in: the enemies and their own side.",
+        description: "The fight they're in: the round, their energy and block.",
         summary: [
           {
             when: { combat: { exists: true } },
-            summary:
-              "Fight, round {combat.round}: {combat.energy} of {combat.max_energy} energy, {combat.block} block. Enemies: {combat.enemies|list}. Hand: {combat.hand|list}.",
+            summary: "Fight, round {combat.round}: {combat.energy} of {combat.max_energy} energy, {combat.block} block.",
           },
-          {
-            when: { combat: { exists: true } },
-            summary:
-              "Fight, round {combat.round}: {combat.energy} of {combat.max_energy} energy. Enemies: {combat.enemies|list}. Hand: {combat.hand|list}.",
-          },
-          {
-            when: { combat: { exists: true } },
-            summary:
-              "Fight, round {combat.round}: {combat.energy} of {combat.max_energy} energy. Enemies: {combat.enemies|list}.",
-          },
+          { when: { combat: { exists: true } }, summary: "Fight, round {combat.round}: {combat.energy} of {combat.max_energy} energy." },
           { when: { in_run: true }, summary: "Not in a fight." },
+        ],
+      },
+      // Each its own line: with what the cards and enemies do, they don't fit in one.
+      {
+        kind: "enemies",
+        description: "The enemies in the fight: their HP, block and what they mean to do.",
+        summary: [
+          { when: { "combat.enemies": { exists: true } }, summary: "Enemies: {combat.enemies|list}." },
+          { when: { in_run: true }, summary: "No enemies: not in a fight." },
+        ],
+      },
+      {
+        kind: "hand",
+        description: "The cards in their hand, with what each costs and does.",
+        summary: [
+          { when: { "combat.hand": { exists: true } }, summary: "Hand: {combat.hand|list}." },
+          { when: { combat: { exists: true } }, summary: "Hand: empty." },
+          { when: { in_run: true }, summary: "No hand: not in a fight." },
         ],
       },
       {

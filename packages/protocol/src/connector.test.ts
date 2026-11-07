@@ -153,10 +153,20 @@ test("the game's clock reads the way it's said", () => {
   expect(clockOf(undefined)).toBeUndefined();
 });
 
+test("long list items are whole while they fit, never cut mid-word, and their full stops don't meet the commas", () => {
+  const hand = Array.from({ length: 6 }, (_, i) => ({
+    label: `Card ${i} (1 energy): Deal 6 damage. Apply 1 Vulnerable to every enemy.`,
+  }));
+  const line = fillTemplate("Hand: {h|list}.", { h: hand })!;
+  expect(line).toMatch(/^Hand: Card 0 \(1 energy\): Deal 6 damage\. Apply 1 Vulnerable to every enemy, Card 1 .* and \d more\.$/);
+  expect(line.length).toBeLessThanOrEqual(280);
+  expect(fillTemplate("Relics: {r|list}.", { r: ["Burning Blood: heal 6 HP."] })).toBe("Relics: Burning Blood: heal 6 HP.");
+});
+
 test("a list shows its first few, an object its entries, and an empty one nothing", () => {
   expect(fillTemplate("took {items|list}", { items: ["20 Nails", "Rolling_Papers"] })).toBe("Took 20 Nails, Rolling Papers");
   expect(fillTemplate("{m|list}", { m: { stress: 2, heavy_load: 1 } })).toBe("Stress 2, heavy load 1");
-  expect(fillTemplate("{xs|list}", { xs: Array.from({ length: 12 }, (_, i) => `${i}`) })).toBe("0, 1, 2, 3, 4, 5, 6, 7");
+  expect(fillTemplate("{xs|list}", { xs: Array.from({ length: 12 }, (_, i) => `${i}`) })).toBe("0, 1, 2, 3, 4, 5, 6, 7 and 4 more");
   expect(fillTemplate("{xs|list}", { xs: [] })).toBeNull();
   // Things in a list read as their label, else their name; an id never.
   expect(fillTemplate("{xs|list}", { xs: [{ id: "h1", label: "Strike (1 energy)" }, { name: "Anchor" }, { id: "x" }] })).toBe(

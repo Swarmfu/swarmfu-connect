@@ -85,7 +85,7 @@ test("a turn's start says what she'd need to follow the fight", () => {
     enemy_intents: ["Jaw Worm: attack for 11"],
   };
   expect(said(event("turn_started", { data }))?.summary).toBe(
-    "Turn 1 for Bob: 3 energy, 62 of 80 HP, 0 block. Enemies: Jaw Worm: attack for 11. Hand: Strike, Bash.",
+    "Turn 1 for Bob: 3 energy, 62 of 80 HP, 0 block. Enemies: Jaw Worm: attack for 11.",
   );
 });
 
@@ -188,10 +188,9 @@ test("right now: where they are, their kit and the fight", () => {
       kind: "kit",
       line: "Relics: Burning Blood. Potions: Fire Potion. 11 cards in the deck.",
     },
-    {
-      kind: "fight",
-      line: "Fight, round 2: 3 of 3 energy, 5 block. Enemies: Jaw Worm. Hand: Strike, Defend.",
-    },
+    { kind: "fight", line: "Fight, round 2: 3 of 3 energy, 5 block." },
+    { kind: "enemies", line: "Enemies: Jaw Worm." },
+    { kind: "hand", line: "Hand: Strike, Defend." },
     { kind: "effects", line: "Nothing on Bob right now." },
   ]);
   expect(
@@ -209,24 +208,50 @@ test("her moves and their results wait for control", () => {
 
 test("before their name is known they're the player, and an unknown character isn't named", () => {
   const plain = (e: ConnectorEvent) => translateEvent(slaythespire2, e, {});
-  expect(plain(event("card_added", { subject: "player", data: { card: "Inflame", source: "combat reward" } }))?.summary).toBe(
-    "The player took Inflame (combat reward).",
-  );
-  expect(plain(event("run_started", { subject: "player", data: { character: "unknown", ascension: 0 } }))?.summary).toBe(
-    "A new run started, on ascension 0.",
-  );
+  expect(
+    plain(
+      event("card_added", {
+        subject: "player",
+        data: { card: "Inflame", source: "combat reward" },
+      }),
+    )?.summary,
+  ).toBe("The player took Inflame (combat reward).");
+  expect(
+    plain(
+      event("run_started", {
+        subject: "player",
+        data: { character: "unknown", ascension: 0 },
+      }),
+    )?.summary,
+  ).toBe("A new run started, on ascension 0.");
 });
 
 test("the character is named as the game names it, and an unknown one isn't", async () => {
   const { playerName } = await import("@swarmfu/connect-protocol");
-  expect(playerName(slaythespire2, { run: { character: "The Ironclad" } })).toBe("The Ironclad");
-  expect(playerName(slaythespire2, { run: { character: "unknown" } })).toBe("The player");
-  expect(playerName(slaythespire2, { player: { name: "Zac" }, run: { character: "The Ironclad" } })).toBe("Zac");
+  expect(
+    playerName(slaythespire2, { run: { character: "The Ironclad" } }),
+  ).toBe("The Ironclad");
+  expect(playerName(slaythespire2, { run: { character: "unknown" } })).toBe(
+    "The player",
+  );
+  expect(
+    playerName(slaythespire2, {
+      player: { name: "Zac" },
+      run: { character: "The Ironclad" },
+    }),
+  ).toBe("Zac");
 });
 
-test("a turn with no block still shows the hand", () => {
-  const data = { turn: 1, energy: 3, hp: 63, max_hp: 80, hand: ["Defend", "Bash"], enemy_intents: ["Shrinker Beetle: strong debuff"] };
+test("a turn with no block still shows the enemies", () => {
+  const data = {
+    turn: 1,
+    energy: 3,
+    hp: 63,
+    max_hp: 80,
+    hand: ["Defend", "Bash"],
+    enemy_intents: ["Shrinker Beetle: strong debuff"],
+  };
   expect(said(event("turn_started", { data }))?.summary).toBe(
-    "Turn 1 for Bob: 3 energy, 63 of 80 HP. Enemies: Shrinker Beetle: strong debuff. Hand: Defend, Bash.",
+    "Turn 1 for Bob: 3 energy, 63 of 80 HP. Enemies: Shrinker Beetle: strong debuff.",
   );
 });

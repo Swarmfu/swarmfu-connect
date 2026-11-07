@@ -412,6 +412,18 @@ function fits(source: unknown, when: EventRule["when"]): boolean {
 
 /** Longest a filled-in value may be: game text (a name, a book title) is the player's, not ours. */
 const MAX_VALUE_CHARS = 60;
+/** Longest a list item may be: a label says what a thing is and does ("Bash (2 energy): Deal 8 damage. Apply 2 Vulnerable."). */
+const MAX_ITEM_CHARS = 120;
+/** Longest a whole list may be, so a line keeps room for its words around it. */
+const MAX_LIST_CHARS = 220;
+
+/** Text cut to `max` at a word, with "…" when it's cut: never half a word. */
+function clipWords(text: string, max: number): string {
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max - 1);
+  const space = cut.lastIndexOf(" ");
+  return `${(space > max / 2 ? cut.slice(0, space) : cut).replace(/[\s,.;:]+$/, "")}…`;
+}
 
 /**
  * "3:05 pm" from the in-game clock, if it has the hour: the way it's said.
@@ -441,8 +453,8 @@ function shown(value: unknown, filter: string | undefined): string | undefined {
     const entries = Array.isArray(value)
       ? value.map((item) =>
           item && typeof item === "object" && !Array.isArray(item)
-            ? shown((item as Record<string, unknown>).label ?? (item as Record<string, unknown>).name, undefined)
-            : shown(item, undefined),
+            ? shown((item as Record<string, unknown>).label ?? (item as Record<string, unknown>).name, "item")
+            : shown(item, "item"),
         )
       : value && typeof value === "object"
         ? Object.entries(value).map(([key, v]) => {
@@ -452,7 +464,18 @@ function shown(value: unknown, filter: string | undefined): string | undefined {
         : undefined;
     if (!entries) return undefined;
     const items = entries.filter((item): item is string => !!item).slice(0, MAX_LIST_ITEMS);
-    return items.length ? items.join(", ").slice(0, MAX_VALUE_CHARS * 3) : undefined;
+    // Whole items while they fit; the rest are counted.
+    let joined = "";
+    let shownCount = 0;
+    for (const item of items) {
+      // An item's own full stop would meet the list's comma: "Deal 6 damage., Defend".
+      const next = (joined ? `${joined}, ` : "") + item.replace(/\.$/, "");
+      if (next.length > MAX_LIST_CHARS && shownCount) break;
+      joined = clipWords(next, MAX_LIST_CHARS);
+      shownCount++;
+    }
+    const rest = entries.filter(Boolean).length - shownCount;
+    return joined ? (rest > 0 ? `${joined} and ${rest} more` : joined) : undefined;
   }
   const digits = filter && /^\d$/.test(filter) ? Number(filter) : undefined;
   if (typeof value === "number" && Number.isFinite(value))
@@ -468,7 +491,7 @@ function shown(value: unknown, filter: string | undefined): string | undefined {
     .replace(filter === "words" ? /[_-]+/g : /_+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
-  return text ? text.slice(0, MAX_VALUE_CHARS) : undefined;
+  return text ? clipWords(text, filter === "item" ? MAX_ITEM_CHARS : MAX_VALUE_CHARS) : undefined;
 }
 
 /**
@@ -492,8 +515,9 @@ export function fillTemplate(
       return value ?? "";
     },
   );
-  // A line starts with a capital, whatever it starts with ("the Ironclad took…").
-  const line = text.trim().slice(0, MAX_SUMMARY_CHARS);
+  // A line starts with a capital, whatever it starts with ("the Ironclad took…"),
+  // and a value's own full stop doesn't double the template's ("heal 6 HP..").
+  const line = clipWords(text.trim().replace(/(?<!\.)\.\.(?!\.)/g, "."), MAX_SUMMARY_CHARS);
   return missing ? null : line.charAt(0).toUpperCase() + line.slice(1);
 }
 
