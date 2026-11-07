@@ -468,7 +468,10 @@ function shown(value: unknown, filter: string | undefined): string | undefined {
           })
         : undefined;
     if (!entries) return undefined;
-    const items = entries.filter((item): item is string => !!item).slice(0, MAX_LIST_ITEMS);
+    // The same item several times reads once, counted ("5× Strike (1 energy): Deal 6 damage").
+    const counts = new Map<string, number>();
+    for (const item of entries) if (item) counts.set(item, (counts.get(item) ?? 0) + 1);
+    const items = [...counts].map(([item, n]) => (n > 1 ? `${n}× ${item}` : item)).slice(0, MAX_LIST_ITEMS);
     // Whole items while they fit; the rest are counted.
     let joined = "";
     let shownCount = 0;
@@ -481,7 +484,7 @@ function shown(value: unknown, filter: string | undefined): string | undefined {
       joined = clipWords(next, MAX_LIST_CHARS);
       shownCount++;
     }
-    const rest = entries.filter(Boolean).length - shownCount;
+    const rest = counts.size - shownCount;
     return joined ? (rest > 0 ? `${joined} and ${rest} more` : joined) : undefined;
   }
   const digits = filter && /^\d$/.test(filter) ? Number(filter) : undefined;

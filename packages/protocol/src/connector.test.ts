@@ -169,6 +169,7 @@ test("a part in [[ ]] is left out when it has nothing, a list in a list reads wi
     "Rewards: 18 gold; pick a card: Bash or Anger, Cinder or Iron Wave.",
   );
   expect(fillTemplate("{a} [[{b}]]", { a: 1 })).toBe("1");
+  expect(fillTemplate("{c|list}", { c: ["Strike", "Defend", "Strike", "Strike", "Bash"] })).toBe("3× Strike, Defend, Bash");
   expect(fillTemplate("Enemies: {e|list}.", { e: ["Inklet, 12 of 12 HP, attack 3", "Mawler, 72 of 72 HP"] })).toBe(
     "Enemies: Inklet, 12 of 12 HP, attack 3; Mawler, 72 of 72 HP.",
   );
