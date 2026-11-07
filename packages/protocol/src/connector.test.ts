@@ -96,7 +96,7 @@ test("the first rule that fits, and has everything it needs, makes the event", (
 
 test("game text is one short line in her instructions", () => {
   expect(fillTemplate("read {t}", { t: "A\nbook\u0007 title" })).toBe(
-    "read A book title",
+    "Read A book title",
   );
   expect(fillTemplate("{t}", { t: "x".repeat(200) })).toHaveLength(60);
   expect(fillTemplate("{a|words}", { a: "hang-sheet" })).toBe("hang sheet");
@@ -154,7 +154,7 @@ test("the game's clock reads the way it's said", () => {
 });
 
 test("a list shows its first few, an object its entries, and an empty one nothing", () => {
-  expect(fillTemplate("took {items|list}", { items: ["20 Nails", "Rolling_Papers"] })).toBe("took 20 Nails, Rolling Papers");
+  expect(fillTemplate("took {items|list}", { items: ["20 Nails", "Rolling_Papers"] })).toBe("Took 20 Nails, Rolling Papers");
   expect(fillTemplate("{m|list}", { m: { stress: 2, heavy_load: 1 } })).toBe("stress 2, heavy load 1");
   expect(fillTemplate("{xs|list}", { xs: Array.from({ length: 12 }, (_, i) => `${i}`) })).toBe("0, 1, 2, 3, 4, 5, 6, 7");
   expect(fillTemplate("{xs|list}", { xs: [] })).toBeNull();

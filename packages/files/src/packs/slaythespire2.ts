@@ -32,6 +32,9 @@ const WHO: { subject: string; when: EventRule["when"]; name: string }[] = [
   { subject: "teammate", when: { subject: "teammate" }, name: "{data.name}" },
   { subject: "player", when: { subject: "player" }, name: "{player}" },
   { subject: "player", when: { subject: { exists: false } }, name: "{player}" },
+  // Before their name or character is known.
+  { subject: "player", when: { subject: "player" }, name: "the player" },
+  { subject: "player", when: { subject: { exists: false } }, name: "the player" },
 ];
 
 interface ByWho {
@@ -107,6 +110,8 @@ export const slaythespire2: GamePack = {
       description:
         "A run began or was picked up again: the character, the ascension, and in co-op who's playing.",
       rules: [
+        // The mod's first build sent "unknown" for the character.
+        { when: { "data.character": "unknown" }, lane: "respond", summary: "A new run started, on ascension {data.ascension}." },
         {
           when: { "data.continued": true },
           lane: "respond",

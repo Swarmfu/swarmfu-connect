@@ -105,7 +105,7 @@ interface Instance {
 const currentOf = (instance: Instance | undefined): Heartbeat | GameState | null => {
   if (!instance) return null;
   const { state, heartbeat } = instance;
-  return state && heartbeat && state.session === heartbeat.session ? state : heartbeat;
+  return state && heartbeat && (state.session ?? heartbeat.session) === heartbeat.session ? state : heartbeat;
 };
 
 const isCohost = (instance: Instance) => instance.manifest?.perspective === "cohost";
@@ -194,7 +194,7 @@ export function createFileAdapter(
           running: alive === true,
           ...(heartbeat ? withoutBookkeeping(heartbeat) : {}),
           // The state file has more than the heartbeat, when the mod writes one.
-          ...(state && state.session === heartbeat?.session
+          ...(state && (state.session ?? heartbeat?.session) === heartbeat?.session
             ? withoutBookkeeping(state)
             : {}),
           // Her own copy of the game, in co-op: what only she can see there.

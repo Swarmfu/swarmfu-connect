@@ -207,18 +207,22 @@ export const connectorEventSchema: z.ZodType<ConnectorEvent> = z
   })
   .loose();
 
-/** `state.json`, if the connector writes one: everything about "right now", for her to read on demand. */
+/**
+ * `state.json`, if the connector writes one: everything about "right now",
+ * for her to read on demand. `session` says which session it's from; one
+ * without it is taken to be the heartbeat's.
+ */
 export interface GameState {
-  v: number;
-  session: string;
+  v?: number;
+  session?: string;
   ts: number;
   game_time?: GameTime;
   [key: string]: unknown;
 }
 export const stateSchema: z.ZodType<GameState> = z
   .object({
-    v: z.number(),
-    session: z.string().min(1).max(128),
+    v: z.number().optional(),
+    session: z.string().min(1).max(128).optional(),
     ts: z.number(),
     game_time: gameTimeSchema.optional(),
   })
@@ -488,7 +492,9 @@ export function fillTemplate(
       return value ?? "";
     },
   );
-  return missing ? null : text.trim().slice(0, MAX_SUMMARY_CHARS);
+  // A line starts with a capital, whatever it starts with ("the Ironclad took…").
+  const line = text.trim().slice(0, MAX_SUMMARY_CHARS);
+  return missing ? null : line.charAt(0).toUpperCase() + line.slice(1);
 }
 
 /** A small stable hash, to keep event ids short. */

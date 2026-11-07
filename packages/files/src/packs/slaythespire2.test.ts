@@ -205,3 +205,13 @@ test("her moves and their results wait for control", () => {
   expect(kinds).toContain("turn_ended_hers");
   expect(kinds).toContain("kit");
 });
+
+test("before their name is known they're the player, and an unknown character isn't named", () => {
+  const plain = (e: ConnectorEvent) => translateEvent(slaythespire2, e, {});
+  expect(plain(event("card_added", { subject: "player", data: { card: "Inflame", source: "combat reward" } }))?.summary).toBe(
+    "The player took Inflame (combat reward).",
+  );
+  expect(plain(event("run_started", { subject: "player", data: { character: "unknown", ascension: 0 } }))?.summary).toBe(
+    "A new run started, on ascension 0.",
+  );
+});
