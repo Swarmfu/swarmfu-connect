@@ -16,6 +16,10 @@ export const GAME_ACTION_TOOL = "game_action";
 export interface DecisionOption {
   id: string;
   label?: string;
+  /** False for a choice listed but not open now (a card she can't afford); unset is open. */
+  playable?: boolean;
+  /** Why it isn't open ("needs 2 stars"). */
+  why?: string;
   [key: string]: unknown;
 }
 export interface DecisionParam {
@@ -47,6 +51,8 @@ const optionSchema = z
   .object({
     id: z.string().min(1).max(64),
     label: z.string().max(400).optional(),
+    playable: z.boolean().optional(),
+    why: z.string().max(200).optional(),
   })
   .loose();
 const paramSchema = z
@@ -124,6 +130,10 @@ const plain = (text: string) =>
     .trim();
 
 const optionText = (option: DecisionOption) => plain(option.label ?? option.id);
+/** A choice as she reads it in "Your move": one she can't take now says so, and why. */
+const shownOption = (option: DecisionOption) =>
+  option.playable === false ? `${optionText(option)} [not now${option.why ? `: ${plain(option.why)}` : ""}]` : optionText(option);
+const open = (option: DecisionOption) => option.playable !== false;
 
 /**
  * The decision as a line she reads: what she's deciding and each action with
@@ -136,11 +146,14 @@ export function decisionLine(
 ): string {
   const head = `Your move${decision.kind ? ` (${plain(decision.kind)})` : ""}: ${decision.prompt ? plain(decision.prompt) : "it's your turn to choose."}`;
   if (decision.ready === false)
-    return `${head} The game is still busy; wait a moment.`;
+    // Nothing of hers open (the enemies' turn, travelling, a run starting): what the game is doing, never "Your move".
+    return decision.kind === "waiting" || !decision.actions.length
+      ? `Nothing for you to decide yet: ${decision.prompt ? plain(decision.prompt) : "the game is busy."}`
+      : `${head} The game is still busy; wait a moment.`;
   const actions = decision.actions.map((action) => {
     const name = plain(action.action);
     const params = Object.entries(action.params ?? {}).map(([param, spec]) => {
-      const choices = spec.options.map(optionText);
+      const choices = spec.options.map(shownOption);
       const counted = [...new Set(choices)].map((choice) => {
         const n = choices.filter((c) => c === choice).length;
         return n > 1 ? `${n}× ${choice}` : choice;
@@ -174,6 +187,8 @@ export function findOption(
 ): DecisionOption | undefined {
   const w = normal(wanted);
   if (!w) return undefined;
+  // One she can take first, when two read the same (a playable Strike over one that isn't).
+  options = [...options.filter(open), ...options.filter((o) => !open(o))];
   return (
     options.find((o) => o.id === wanted) ??
     options.find((o) => normal(o.label ?? "") === w) ??
@@ -219,15 +234,22 @@ export function resolveMove(
       return {
         error: `There's no "${value}" to choose for ${param}. The choices: ${params[param]!.options.map(optionText).join(" / ")}.`,
       };
+    if (!open(option)) {
+      const others = params[param]!.options.filter(open).map(optionText);
+      return {
+        error: `${plain(option.label ?? option.id).split(/\s*[(:]/)[0] || option.id} can't be chosen now${option.why ? `: it ${plain(option.why)}` : ""}.${others.length ? ` You can choose: ${others.join(" / ")}.` : ""}`,
+      };
+    }
     ids[param] = option.id;
   }
   for (const [param, spec] of Object.entries(params)) {
     if (param in ids || spec.optional) continue;
     // A choice of one needs no asking.
-    if (spec.options.length === 1) ids[param] = spec.options[0]!.id;
+    const live = spec.options.filter(open);
+    if (live.length === 1) ids[param] = live[0]!.id;
     else
       return {
-        error: `Say which ${param}: ${spec.options.map(optionText).join(" / ")}.`,
+        error: `Say which ${param}: ${live.map(optionText).join(" / ")}.`,
       };
   }
   return { action: chosen.action, args: ids };

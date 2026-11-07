@@ -92,3 +92,36 @@ test("a label written with or without its end punctuation is the same choice", (
     args: { option: "o1" },
   });
 });
+
+test("a card she can't play now is shown with why, refused with why, and never picked for her", () => {
+  // Connector 0.5.1: every card in hand, the ones not open marked (seventh Slay the Spire 2 test's Falling Star).
+  const fight: Decision = {
+    id: "d3",
+    kind: "combat",
+    prompt: "Your turn: 3 energy.",
+    actions: [
+      {
+        action: "play card",
+        params: {
+          card: {
+            options: [
+              { id: "h1", label: "Falling Star (0 energy, 2 stars): Deal 8 damage", playable: false, why: "needs 2 stars" },
+              { id: "h2", label: "Strike (1 energy): Deal 6 damage" },
+            ],
+          },
+        },
+      },
+    ],
+  };
+  expect(decisionLine(fight)).toContain("Falling Star (0 energy, 2 stars): Deal 8 damage [not now: needs 2 stars] / Strike");
+  expect(resolveMove(fight, "play card", { card: "Falling Star" })).toEqual({
+    error: "Falling Star can't be chosen now: it needs 2 stars. You can choose: Strike (1 energy): Deal 6 damage.",
+  });
+  // The only card she can play is the one meant.
+  expect(resolveMove(fight, "play card")).toEqual({ action: "play card", args: { card: "h2" } });
+});
+
+test("a decision that isn't hers yet says what the game is doing, never \"Your move\"", () => {
+  const waiting: Decision = { id: "d4", kind: "waiting", ready: false, prompt: "The enemies' turn is playing out.", actions: [] };
+  expect(decisionLine(waiting)).toBe("Nothing for you to decide yet: The enemies' turn is playing out.");
+});

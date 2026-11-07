@@ -286,7 +286,7 @@ export function createFileAdapter(
       decision = decisionIn(instance);
     }
     if (!decision) return "There's nothing for you to decide right now.";
-    if (decision.ready === false) return "The game is still busy; try again in a moment.";
+    if (decision.ready === false) return decisionLine(decision);
     const move = resolveMove(decision, input.action, input.args ?? {});
     if ("error" in move) return move.error;
     const command: ConnectorCommand = {
@@ -315,9 +315,11 @@ export function createFileAdapter(
       await sleep(200);
       next = decisionIn(instance);
     }
-    const done = `Done: ${text("summary") ?? command.action}.`;
-    if (!next) return `${done} Nothing more for you to decide right now.`;
+    // The game says what happens after the move (connector 0.5.1's "next"), or the decision does.
+    const done = `Done: ${text("summary") ?? command.action}.${text("next") ? ` ${text("next")}` : ""}`;
+    if (!next) return text("next") ? done : `${done} Nothing more for you to decide right now.`;
     if (next.id === decision.id) return `${done} The game hasn't moved on yet.`;
+    if (next.ready === false) return text("next") ? done : `${done} ${decisionLine(next)}`;
     return `${done} ${decisionLine(next)}`;
   };
 

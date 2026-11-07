@@ -253,13 +253,23 @@ connector takes commands.
   `state.json` has a `decision`: `{id, kind, ready, prompt, actions[{action,
   label, params: {name: {options[{id, label}], optional}}}]}`. Ids are for the
   game; she reads and answers by label. `ready: false` means wait.
+  - A choice that's listed but not open now (a card she can't afford) carries
+    `playable: false` and `why` ("needs 2 stars"); she's shown it marked, and
+    a move naming it is refused with that reason before it reaches the game.
+  - Put every cost in labels: "Falling Star (0 energy, 2 stars): …".
+  - When nothing of hers is open, a `decision` with `kind: "waiting"`,
+    `ready: false`, no actions and a `prompt` saying what the game is doing
+    ("The enemies' turn is playing out.") is what she's told instead of
+    "nothing to decide". It gets no `decision_needed`.
 - **Her turn:** send `decision_needed {decision_id, kind, prompt}` when a new
   decision opens; that's what gives her a turn.
 - **Her move:** swarmfu appends one line to the commands file:
   `{"v":1,"id":"c-…","ts":…,"decision":"d41","action":"play card","args":{"card":"c12","target":"e3"},"say":"…"}`.
 - **The answer:** a `command_result {command_id, status, action, summary,
-  reason}` event. swarmfu waits for it, then for the next decision, and tells
-  her both.
+  reason, next}` event. swarmfu waits for it, then for the next decision, and
+  tells her both. `next` says what happens after the move when it hands
+  things over ("The enemies' turn is playing out."); she hears "Done:
+  <summary>. <next>".
 
 The pack sets `control: true`, which gives her the one tool every game shares,
 `game_action(action, args, say?)`.

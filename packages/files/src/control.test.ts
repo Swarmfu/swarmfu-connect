@@ -114,6 +114,30 @@ test("she makes a move in her own copy, by label, and hears how it went and what
   expect(r.events.map((e) => e.summary)).toContain("You played Bash on Jaw Worm.");
 });
 
+test("after a move that hands the turn over, she hears what the game is doing, not \"nothing to decide\"", async () => {
+  const r = rig();
+  r.hers.state({ decision: decision("d41", "0 energy.") });
+  r.adapter.poll();
+  // Connector 0.5.1: the result says what's next, and the decision waits while the enemies act.
+  const game = setInterval(() => {
+    const [command] = r.hers.commands();
+    if (!command || r.hers.commands().length > 1) return;
+    r.hers.event("command_result", "cohost", {
+      command_id: command.id,
+      status: "applied",
+      action: "end turn",
+      summary: "ended the turn",
+      next: "The enemies' turn is playing out.",
+    });
+    r.hers.state({ decision: { id: "d42", kind: "waiting", ready: false, prompt: "The enemies' turn is playing out.", actions: [] } });
+    r.adapter.poll();
+  }, 50);
+  const answer = await r.adapter.act({ action: "end turn" });
+  clearInterval(game);
+  expect(answer).toBe("Done: ended the turn. The enemies' turn is playing out.");
+  expect(r.events.filter((e) => e.kind === "decision").at(-1)?.summary).toBe("Nothing for you to decide yet: The enemies' turn is playing out.");
+}, 10_000);
+
 test("a move the decision doesn't allow is never written", async () => {
   const r = rig();
   r.hers.state({ decision: decision("d41", "3 energy.") });
