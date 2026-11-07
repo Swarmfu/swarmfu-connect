@@ -306,13 +306,15 @@ export const slaythespire2: GamePack = {
           reaction: "triumph",
           summary: "The boss is beaten!",
         },
+        // A cheer: a win always gets a word from her (they noticed when one didn't).
         {
           lane: "respond",
+          reaction: "cheer",
           summary:
             "Won the fight against {data.encounter} in {data.turns} turns: lost {data.hp_lost} HP, {data.hp} of {data.max_hp} left.",
         },
-        { lane: "respond", summary: "Won the fight against {data.encounter}." },
-        { lane: "respond", summary: "The fight is won." },
+        { lane: "respond", reaction: "cheer", summary: "Won the fight against {data.encounter}." },
+        { lane: "respond", reaction: "cheer", summary: "The fight is won." },
       ],
     },
     card_added: {
@@ -372,7 +374,7 @@ export const slaythespire2: GamePack = {
             "{who} got {data.relic}.",
           ],
           "A relic was found.",
-          { lane: "respond" },
+          { lane: "respond", reaction: "cheer" },
         ),
       ],
     },

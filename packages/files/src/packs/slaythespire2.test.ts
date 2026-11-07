@@ -265,3 +265,13 @@ test("a treasure chest names its relic before it's taken", () => {
   );
   expect(chest).toMatchObject({ lane: "respond", summary: "A treasure chest: Gorget: At the start of each combat, gain 4 Plating." });
 });
+
+test("a won fight and a found relic are cheers, so she always says something", () => {
+  expect(said(event("combat_won", { data: { encounter: "Tunneler", turns: 5, hp_lost: 25, hp: 62, max_hp: 87 } }))).toMatchObject({
+    lane: "respond",
+    reaction: "cheer",
+  });
+  expect(said(event("relic_gained", { data: { relic: "Vajra", description: "Start each combat with 1 Strength" } }))).toMatchObject({
+    reaction: "cheer",
+  });
+});
