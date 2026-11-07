@@ -1,6 +1,14 @@
 import {
   DEFAULT_MACHINE_KEYS,
+  GAME_ACTION_TOOL,
   HEARTBEAT_STALE_MS,
+  decisionLine,
+  decisionSchema,
+  gameActionInput,
+  resolveMove,
+  stateSchema,
+  type ConnectorCommand,
+  type Decision,
   withoutMachineKeys,
   type ConnectorEvent,
   type ConnectorManifest,
@@ -20,8 +28,8 @@ import {
   type AdapterServer,
   type RaisedEvent,
 } from "@swarmfu/connect-protocol/adapter";
-import { existsSync } from "node:fs";
-import { resolve } from "node:path";
+import { appendFileSync, existsSync, readFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { packFolder } from "./packs/index.ts";
 import { pointersFolder, readPointers } from "./pointers.ts";
 import { ConnectorReader } from "./reader.ts";
@@ -51,9 +59,19 @@ export interface FileAdapterOptions {
   now?: () => number;
   onEvent?: (event: GameEvent) => void;
   log?: (line: string) => void;
+  /**
+   * The streamer lets her drive their own copy of the game (single player),
+   * not only one of her own (co-op): the first of control's two keys, the
+   * other being the game's own setting.
+   */
+  control?: boolean;
+  /** How long a move waits for the game's answer (tests make it short). */
+  moveWaitMs?: number;
 }
 
 export interface FileAdapter extends AdapterServer {
+  /** Her move, as `game_action` makes it: the answer she reads. */
+  act(input: { action: string; args?: Record<string, string>; say?: string }): Promise<string>;
   /** Reads what's new and sends it. The caller runs it on a timer. */
   poll(): void;
   /** A resource's current value, as the MCP server serves it. */
@@ -89,7 +107,15 @@ const FIND_EVERY_MS = 2_000;
  * What her own copy of the game sends besides events about her character:
  * the rest of what happens there, the streamer's copy already tells.
  */
-const COHOST_TYPES = new Set(["decision_needed", "command_result", "control_changed"]);
+const COHOST_TYPES = new Set(["decision_needed", "command_result", "control_changed", "cohost_said"]);
+
+const sleep = (ms: number) => new Promise((done) => setTimeout(done, ms));
+
+/** A connector's control switch, from its heartbeat. */
+const controlOf = (heartbeat: Heartbeat | null) => {
+  const control = heartbeat?.control as { enabled?: unknown; mode?: unknown } | undefined;
+  return { enabled: control?.enabled === true, mode: typeof control?.mode === "string" ? control.mode : "off" };
+};
 
 /** One copy of the game, followed through its folder. */
 interface Instance {
@@ -157,10 +183,11 @@ export function createFileAdapter(
     const streamers = all.filter((i) => !isCohost(i));
     const main = newest(streamers.filter(fresh)) ?? newest(all.filter((i) => isCohost(i) && fresh(i))) ?? newest(streamers) ?? newest(all);
     if (!main || isCohost(main)) return { main };
+    // Her copy in the same co-op group; without groups, hers on this computer.
     const group = main.manifest?.group;
-    const cohost = group
-      ? newest(all.filter((i) => isCohost(i) && fresh(i) && i.manifest?.group === group))
-      : undefined;
+    const cohost = newest(
+      all.filter((i) => isCohost(i) && fresh(i) && (!group || !i.manifest?.group || i.manifest.group === group)),
+    );
     return { main, cohost };
   };
 
@@ -170,6 +197,7 @@ export function createFileAdapter(
   let cohostName: string | undefined;
   let machineKeys: readonly string[] = DEFAULT_MACHINE_KEYS;
   let following: { main?: Instance; cohost?: Instance } = {};
+  let decisionShown: string | undefined;
   let world: string | undefined;
   let alive: boolean | null = null;
   let paused: boolean | null = null;
@@ -209,16 +237,95 @@ export function createFileAdapter(
 
   const adapter = createAdapterServer({
     manifest: packManifest(pack),
-    toolInputs: {},
+    toolInputs: pack.control ? { [GAME_ACTION_TOOL]: gameActionInput } : {},
     name: `${pack.game} (file adapter)`,
-    instructions: `${pack.game}, followed through its connector mod. She watches the user play; there's nothing to call.`,
-    tool: () => {
-      throw new Error(`${pack.game} has no tools.`);
+    instructions: pack.control
+      ? `${pack.game}, followed through its connector mod. She can play her own copy of the game with ${GAME_ACTION_TOOL}.`
+      : `${pack.game}, followed through its connector mod. She watches the user play; there's nothing to call.`,
+    tool: async (name, args) => {
+      if (name !== GAME_ACTION_TOOL || !pack.control) throw new Error(`${pack.game} has no tool called ${name}.`);
+      return act(args as { action: string; args?: Record<string, string>; say?: string });
     },
     resource,
     onEvent: options.onEvent,
     log,
   });
+  /**
+   * The copy she plays: hers in co-op, or the streamer's when they've let her
+   * drive it. Its connector must say it takes commands.
+   */
+  const controlled = (): Instance | undefined => {
+    const { main, cohost } = following;
+    const takes = (i: Instance | undefined) => !!i?.manifest?.capabilities?.includes("control") && !!i.manifest.commands_file;
+    if (takes(cohost)) return cohost;
+    if (main && takes(main) && (isCohost(main) || options.control)) return main;
+    return undefined;
+  };
+  /** The decision open in a copy now, read straight from its state file. */
+  const decisionIn = (instance: Instance): Decision | null => {
+    try {
+      const state = stateSchema.safeParse(JSON.parse(readFileSync(join(instance.root, "state.json"), "utf8")));
+      const decision = state.success ? decisionSchema.safeParse(state.data.decision) : null;
+      return decision?.success ? decision.data : null;
+    } catch {
+      return null;
+    }
+  };
+  const results = new Map<string, Record<string, unknown>>();
+  let commands = 0;
+  // Under the backend's 25 s wait for a tool, with room for the next decision.
+  const moveWaitMs = options.moveWaitMs ?? 15_000;
+
+  const act = async (input: { action: string; args?: Record<string, string>; say?: string }): Promise<string> => {
+    const instance = controlled();
+    if (!instance)
+      return options.control || following.cohost
+        ? "You can't play right now: the game you'd play isn't taking moves."
+        : "You aren't playing: there's no copy of the game for you to play.";
+    const control = controlOf(instance.heartbeat);
+    if (!control.enabled || control.mode === "off") return "Control is off in the game, so you can't move right now.";
+    let decision = decisionIn(instance);
+    // Still busy (animations): give it a moment.
+    for (let i = 0; i < 10 && decision?.ready === false; i++) {
+      await sleep(300);
+      decision = decisionIn(instance);
+    }
+    if (!decision) return "There's nothing for you to decide right now.";
+    if (decision.ready === false) return "The game is still busy; try again in a moment.";
+    const move = resolveMove(decision, input.action, input.args ?? {});
+    if ("error" in move) return move.error;
+    const command: ConnectorCommand = {
+      v: 1,
+      id: `c-${startedAt.toString(36)}-${++commands}`,
+      ts: Date.now(),
+      decision: decision.id,
+      action: move.action,
+      args: move.args,
+      ...(input.say?.trim() ? { say: input.say.trim().slice(0, 200) } : {}),
+    };
+    appendFileSync(join(instance.root, instance.manifest!.commands_file!), `${JSON.stringify(command)}\n`);
+    log(`move: ${command.action} ${JSON.stringify(command.args)}`);
+    // The game answers in its events; poll() files each answer here.
+    const deadline = Date.now() + moveWaitMs;
+    let result: Record<string, unknown> | undefined;
+    while (!(result = results.get(command.id)) && Date.now() < deadline) await sleep(150);
+    if (!result) return "The game hasn't answered yet; check what you can do now before moving again.";
+    results.delete(command.id);
+    const text = (key: string) => (typeof result![key] === "string" ? (result![key] as string) : undefined);
+    if (result.status !== "applied")
+      return `That didn't happen (${text("status") ?? "rejected"}): ${text("reason") ?? "no reason given"}.`;
+    // What comes next: the next decision, once the game has settled.
+    let next = decisionIn(instance);
+    for (let i = 0; i < 20 && (!next || next.id === decision.id || next.ready === false); i++) {
+      await sleep(200);
+      next = decisionIn(instance);
+    }
+    const done = `Done: ${text("summary") ?? command.action}.`;
+    if (!next) return `${done} Nothing more for you to decide right now.`;
+    if (next.id === decision.id) return `${done} The game hasn't moved on yet.`;
+    return `${done} ${decisionLine(next)}`;
+  };
+
   const game = (
     summary: string,
     kind: RaisedEvent["kind"],
@@ -264,6 +371,21 @@ export function createFileAdapter(
       ),
       ...(cohost?.events ?? []).filter((event) => event.subject === "cohost" || COHOST_TYPES.has(event.type)),
     ];
+    // The game's answers to her moves, for act() waiting on them.
+    const hers = controlled();
+    for (const event of hers?.events ?? [])
+      if (event.type === "command_result" && typeof event.data?.command_id === "string")
+        results.set(event.data.command_id, event.data);
+    // What she can do now, when she plays: a "right now" line of its own.
+    if (hers) {
+      const decision = decisionIn(hers);
+      const line = decision ? decisionLine(decision) : "Nothing for you to decide in your game right now.";
+      if (line !== decisionShown) {
+        adapter.emit({ kind: "decision", lane: "silent", subject: "self", summary: line });
+        decisionShown = line;
+      }
+    }
+
     for (const event of told) {
       // Before any heartbeat, the event's own copy of the character can name them.
       const translated = translateEvent(pack, event, {
@@ -310,5 +432,5 @@ export function createFileAdapter(
     }
   };
 
-  return { ...adapter, poll, resource };
+  return { ...adapter, poll, resource, act };
 }

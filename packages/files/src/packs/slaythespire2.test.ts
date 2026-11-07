@@ -199,12 +199,21 @@ test("right now: where they are, their kit and the fight", () => {
   ).toBe("Not in a run: at the menu.");
 });
 
-test("her moves and their results wait for control", () => {
-  expect(said(event("decision_needed", { subject: "cohost" }))).toBeNull();
-  expect(said(event("command_result", { subject: "cohost" }))).toBeNull();
-  const kinds = Object.keys(packManifest(slaythespire2).events);
-  expect(kinds).toContain("turn_ended_hers");
-  expect(kinds).toContain("kit");
+test("her moves: her turn wakes her, and each result is hers", () => {
+  expect(said(event("decision_needed", { subject: "cohost", data: { kind: "combat", prompt: "Your turn: 3 energy." } }))).toMatchObject({
+    lane: "respond",
+    subject: "self",
+    summary: "Your move (combat): Your turn: 3 energy.",
+  });
+  expect(said(event("command_result", { subject: "cohost", data: { status: "applied", summary: "played Bash on Jaw Worm" } }))?.summary).toBe(
+    "You played Bash on Jaw Worm.",
+  );
+  expect(
+    said(event("command_result", { subject: "cohost", data: { status: "rejected", action: "play card", reason: "not enough energy" } }))?.summary,
+  ).toBe("Your move (play card) didn't happen: not enough energy.");
+  const manifest = packManifest(slaythespire2);
+  expect(Object.keys(manifest.events)).toContain("turn_ended_hers");
+  expect(Object.keys(manifest.tools)).toEqual(["game_action"]);
 });
 
 test("before their name is known they're the player, and an unknown character isn't named", () => {

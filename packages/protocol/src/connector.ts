@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { GAME_ACTION_DESCRIPTION, GAME_ACTION_TOOL } from "./control.ts";
 import {
   MAX_SUMMARY_CHARS,
   type AdapterManifest,
@@ -323,10 +324,16 @@ export interface GamePack {
      */
     more?: { kind: string; description: string; summary: StatusTemplate[] }[];
   };
+  /**
+   * Its connector can take commands (`control`): she gets the `game_action`
+   * tool, and her picture of the game says what she can do (docs/mod-guide.md,
+   * "Control").
+   */
+  control?: boolean;
 }
 
 /** Kinds the file adapter sends for any game, besides the pack's. */
-export type ConnectorKind = "status" | "game_paused" | "game_resumed" | "game_closed" | "game_opened";
+export type ConnectorKind = "status" | "game_paused" | "game_resumed" | "game_closed" | "game_opened" | "decision";
 export const CONNECTOR_KINDS: Record<ConnectorKind, EventKindSpec> = {
   status: {
     lane: "silent",
@@ -341,6 +348,10 @@ export const CONNECTOR_KINDS: Record<ConnectorKind, EventKindSpec> = {
   game_opened: {
     lane: "silent",
     description: "The game is running again after being closed.",
+  },
+  decision: {
+    lane: "silent",
+    description: "What she can do right now in the copy of the game she plays, if anything.",
   },
 };
 
@@ -365,7 +376,7 @@ export function packManifest(pack: GamePack): AdapterManifest {
     version: pack.version,
     role: pack.role,
     events,
-    tools: {},
+    tools: pack.control ? { [GAME_ACTION_TOOL]: { description: GAME_ACTION_DESCRIPTION } } : {},
     resources: {
       self: { description: "Who the user plays as, and which world." },
       state: {

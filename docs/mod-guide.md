@@ -240,6 +240,30 @@ same `group` as one play session:
 
 In a pack, `{cohost}` is her character's name and `{player}` the streamer's.
 
+### Control: she plays
+
+A connector that takes commands says so: `control` in the manifest's
+`capabilities`, and a `commands_file` (a bare file name, new each session).
+Its heartbeat carries `control: {enabled, mode}`; control is off until both
+the game's own setting and the streamer allow it. Her own copy (`perspective:
+"cohost"`) is hers to play; the streamer's own copy only when they start
+swarmfu with `-- --control`.
+
+- **What she can do:** while the player she drives has something to decide,
+  `state.json` has a `decision`: `{id, kind, ready, prompt, actions[{action,
+  label, params: {name: {options[{id, label}], optional}}}]}`. Ids are for the
+  game; she reads and answers by label. `ready: false` means wait.
+- **Her turn:** send `decision_needed {decision_id, kind, prompt}` when a new
+  decision opens; that's what gives her a turn.
+- **Her move:** swarmfu appends one line to the commands file:
+  `{"v":1,"id":"c-…","ts":…,"decision":"d41","action":"play card","args":{"card":"c12","target":"e3"},"say":"…"}`.
+- **The answer:** a `command_result {command_id, status, action, summary,
+  reason}` event. swarmfu waits for it, then for the next decision, and tells
+  her both.
+
+The pack sets `control: true`, which gives her the one tool every game shares,
+`game_action(action, args, say?)`.
+
 ## Game packs
 
 A pack is data: no code runs from it. It lives in

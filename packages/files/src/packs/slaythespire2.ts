@@ -101,6 +101,7 @@ export const slaythespire2: GamePack = {
     linux: "~/.local/share/SlayTheSpire2/swarmfu",
   },
   // The character's name already has its article ("The Ironclad"); before the game knows it, it's "unknown".
+  control: true,
   player: ["{player.name}", { when: { "run.character": "unknown" }, summary: "the player" }, "{run.character}"],
   events: {
     session_start: {
@@ -531,11 +532,26 @@ export const slaythespire2: GamePack = {
         { summary: "Her control of the game changed." },
       ],
     },
-    // For when she plays (control); until then there's nothing she can do with them.
-    decision_needed: { description: "It's her move.", rules: [{ drop: true }] },
+    // Her playing (connector 0.4.0): always her, whichever copy she drives.
+    decision_needed: {
+      description: "It's her move in the copy of the game she plays: the backend gives her a turn.",
+      rules: [
+        { lane: "respond", subject: "self", summary: "Your move ({data.kind}): {data.prompt|text}" },
+        { lane: "respond", subject: "self", summary: "Your move." },
+      ],
+    },
     command_result: {
-      description: "What came of a move she sent.",
-      rules: [{ drop: true }],
+      description: "What came of a move she made.",
+      rules: [
+        { when: { "data.status": "applied" }, subject: "self", tally: true, summary: "You {data.summary|text}." },
+        { when: { "data.status": "applied" }, subject: "self", tally: true, summary: "Your move ({data.action}) went through." },
+        { subject: "self", tally: true, summary: "Your move ({data.action}) didn't happen: {data.reason|text}." },
+        { subject: "self", tally: true, summary: "Your move ({data.action}) didn't happen." },
+      ],
+    },
+    cohost_said: {
+      description: "A line of hers shown in the game with a move.",
+      rules: [{ subject: "self", summary: "You said in the game: \"{data.text|text}\"" }],
     },
   },
   status: {
