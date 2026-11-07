@@ -443,6 +443,11 @@ export const slaythespire2: GamePack = {
       description: "The rewards after a fight, before they pick: gold, cards to choose from, potions, relics. One she weighs in on.",
       rules: [
         {
+          when: { "data.source": "treasure" },
+          lane: "respond",
+          summary: "A treasure chest:[[ {data.relics|list};]][[ potions: {data.potions|list}]]",
+        },
+        {
           lane: "respond",
           summary:
             "Rewards:[[ {data.gold} gold;]][[ pick a card: {data.cards|list};]][[ potions: {data.potions|list};]][[ relics: {data.relics|list};]][[ also {data.other|list}]]",

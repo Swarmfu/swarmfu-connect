@@ -256,3 +256,12 @@ test("a turn with no block still shows the enemies", () => {
     "Turn 1 for Bob: 3 energy, 63 of 80 HP. Enemies: Shrinker Beetle: strong debuff. Hand: Defend, Bash.",
   );
 });
+
+test("a treasure chest names its relic before it's taken", () => {
+  const chest = said(
+    event("reward_offered", {
+      data: { source: "treasure", gold: 0, cards: [], relics: ["Gorget: At the start of each combat, gain 4 Plating"], potions: [], other: [] },
+    }),
+  );
+  expect(chest).toMatchObject({ lane: "respond", summary: "A treasure chest: Gorget: At the start of each combat, gain 4 Plating." });
+});
