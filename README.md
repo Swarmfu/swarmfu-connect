@@ -36,12 +36,12 @@ Minecraft, where your companion joins as a player of their own, comes as a separ
 | Game | How | Pack |
 | --- | --- | --- |
 | Project Zomboid (Build 42) | the `swarmfu-connector` mod | [`projectzomboid.ts`](packages/files/src/packs/projectzomboid.ts) |
-| Slay the Spire 2 (beta) | the Swarmfu Connector mod, including co-op with her in the lobby | [`slaythespire2.ts`](packages/files/src/packs/slaythespire2.ts) |
+| Slay the Spire 2 (beta) | the [Swarmfu Connector](https://steamcommunity.com/sharedfiles/filedetails/?id=3838028473) mod (Steam Workshop), including co-op with her in the lobby | [`slaythespire2.ts`](packages/files/src/packs/slaythespire2.ts) |
 | Minecraft: Java Edition | she joins as a bot (Mineflayer) | [`packages/minecraft`](packages/minecraft) |
 
 ### Slay the Spire 2
 
-1. Subscribe to the **Swarmfu Connector** mod on the Steam Workshop.
+1. Subscribe to the [**Swarmfu Connector**](https://steamcommunity.com/sharedfiles/filedetails/?id=3838028473) mod on the Steam Workshop.
 2. Start the game and turn the mod on under **Settings → Mod Settings**. Restart the game if it asks.
 3. Open `swarmfu-connect` and play. Your companion watches and talks the run through with you. (Letting them take turns takes more setup.)
 
