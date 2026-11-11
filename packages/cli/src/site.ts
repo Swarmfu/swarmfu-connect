@@ -28,3 +28,26 @@ export async function resolveSite(site: string, fetcher: typeof fetch = fetch): 
     );
   return { site: origin, convexUrl: parsed.data.convexUrl };
 }
+
+/**
+ * What someone typed at the "Pairing code:" prompt: the code alone, or the
+ * whole line the Game card copies off www.swarmfu.com
+ * (`swarmfu pair <CODE> --site <url>`), so a double-clicked swarmfu pairs
+ * with a preview too. Null when there's no code in it.
+ */
+export function readPairingLine(line: string): { code: string; site?: string } | null {
+  const words = line.trim().split(/\s+/).filter(Boolean);
+  let site: string | undefined;
+  const rest: string[] = [];
+  for (let i = 0; i < words.length; i++) {
+    const word = words[i]!;
+    if (word === "--site") site = words[++i];
+    else if (word.startsWith("--site=")) site = word.slice("--site=".length);
+    else if (/^https?:\/\//i.test(word)) site = word;
+    else rest.push(word);
+  }
+  // Drop the program's name and the subcommand, however the line was copied.
+  while (rest.length && /^(\.[/\\])?swarmfu(\.exe)?$|^pair$/i.test(rest[0]!)) rest.shift();
+  const code = rest.find((word) => !word.startsWith("-"));
+  return code ? { code, ...(site ? { site } : {}) } : null;
+}

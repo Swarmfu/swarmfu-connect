@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { allowedOrigins, configSchema } from "./config.ts";
 import { installedGames } from "./games.ts";
-import { resolveSite } from "./site.ts";
+import { readPairingLine, resolveSite } from "./site.ts";
 import { newer } from "./version.ts";
 
 const dirs: string[] = [];
@@ -75,4 +75,16 @@ test("release versions compare by number", () => {
   expect(newer("0.10.0", "0.9.0")).toBe(true);
   expect(newer("0.1.0", "0.1.0")).toBe(false);
   expect(newer("0.1", "0.1.1")).toBe(false);
+});
+
+test("the pairing prompt takes the code, or the whole line the Game card copies", () => {
+  expect(readPairingLine("  K7QM2P ")).toEqual({ code: "K7QM2P" });
+  expect(readPairingLine("swarmfu pair K7QM2P --site https://swarmfu-git-x.vercel.app")).toEqual({
+    code: "K7QM2P",
+    site: "https://swarmfu-git-x.vercel.app",
+  });
+  expect(readPairingLine(".\\swarmfu.exe pair K7QM2P --site=https://a.vercel.app")).toEqual({ code: "K7QM2P", site: "https://a.vercel.app" });
+  expect(readPairingLine("K7QM2P https://a.vercel.app")).toEqual({ code: "K7QM2P", site: "https://a.vercel.app" });
+  expect(readPairingLine("swarmfu pair")).toBeNull();
+  expect(readPairingLine("")).toBeNull();
 });

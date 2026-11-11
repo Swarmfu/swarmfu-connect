@@ -21,7 +21,7 @@ import {
 } from "./config.ts";
 import { installedGames } from "./games.ts";
 import { ask, interactive, waitToClose } from "./prompt.ts";
-import { resolveSite } from "./site.ts";
+import { readPairingLine, resolveSite } from "./site.ts";
 import { newerRelease, VERSION } from "./version.ts";
 
 /**
@@ -228,10 +228,10 @@ async function guided() {
       "Pair this computer with Swarmfu: open the app, and on the Game card, pick Pair this computer.",
     );
     for (;;) {
-      const code = (await ask("Pairing code: ")).trim();
-      if (!code) continue;
+      const typed = readPairingLine(await ask("Pairing code: "));
+      if (!typed) continue;
       try {
-        config = await pairWith(code, {});
+        config = await pairWith(typed.code, { site: typed.site });
         break;
       } catch (error) {
         if (!(error instanceof Exit)) throw error;
