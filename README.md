@@ -1,6 +1,6 @@
 # swarmfu-connect
 
-`swarmfu-connect` lets your [Swarmfu](https://www.swarmfu.com) companion follow the game you're playing. It's a small free program that runs on your computer, reads what the game's connector mod writes, and passes it to Swarmfu, so your companion can react to the close calls, the kills and the quiet stretches like a friend watching beside you.
+`swarmfu-connect` lets your [Swarmfu™](https://www.swarmfu.com) companion follow the game you're playing. It's a small free program that runs on your computer, reads what the game's connector mod writes, and passes it to Swarmfu, so your companion can react to the close calls, the kills and the quiet stretches like a friend watching beside you.
 
 This repo is the open part: the `swarmfu-connect` program, the protocol it speaks, and the **game packs** that teach it new games. Anyone can add a game.
 
@@ -75,4 +75,4 @@ How it fits together: an **adapter** is an MCP server for one game. It sends gam
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE). Swarmfu™ is a trademark of Draugr LLC; the MIT license covers this code, not the Swarmfu name or logo.
