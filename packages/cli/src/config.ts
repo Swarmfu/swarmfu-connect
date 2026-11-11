@@ -47,7 +47,7 @@ export function configDir(): string {
 
 export const configPath = () => join(configDir(), "config.json");
 
-/** Where the bridge kept its pairing before it was called swarmfu. */
+/** Where the bridge kept its pairing before it was called swarmfu-connect. */
 const legacyPath = () => join(homedir(), ".waifu-bridge", "config.json");
 
 /** Moves an old ~/.waifu-bridge pairing over, once, if there's none here yet. */

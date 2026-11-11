@@ -1,6 +1,6 @@
 # @swarmfu/connect-protocol
 
-The contract between game adapters, the `swarmfu` bridge and Swarmfu's backend:
+The contract between game adapters, the `swarmfu-connect` bridge and Swarmfu's backend:
 - **Game events:** lanes, reactions and subjects.
 - **Adapter manifests**, and the checks run against them.
 - **The bridge's wire messages**, and the pairing code format.

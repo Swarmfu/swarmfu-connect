@@ -25,25 +25,25 @@ import { readPairingLine, resolveSite } from "./site.ts";
 import { newerRelease, VERSION } from "./version.ts";
 
 /**
- * swarmfu: lets your Swarmfu co-host follow the game you're playing.
+ * swarmfu-connect: lets your Swarmfu companion follow the game you're playing.
  *
- *   swarmfu                    Pair if needed, find your game, start it.
- *   swarmfu pair <CODE>        Pair with the code from the app.
- *   swarmfu start [game]       Start a game's adapter and connect it.
+ *   swarmfu-connect                Pair if needed, find your game, start it.
+ *   swarmfu-connect pair <CODE>    Pair with the code from the app.
+ *   swarmfu-connect start [game]   Start a game's adapter and connect it.
  */
 
-const USAGE = `swarmfu ${VERSION}: lets your Swarmfu co-host follow the game you're playing.
+const USAGE = `swarmfu-connect ${VERSION}: lets your Swarmfu companion follow the game you're playing.
 
 Usage:
-  swarmfu                       Pair if needed, find your game and start it.
-  swarmfu pair <CODE> [--site <url>] [--name <label>]
+  swarmfu-connect               Pair if needed, find your game and start it.
+  swarmfu-connect pair <CODE> [--site <url>] [--name <label>]
       Pair with the code from the app's Game card.
-  swarmfu start [game] [--port ${BRIDGE_DEFAULT_PORT}] [-- adapter args…]
-      Start a game (default: the one installed here) and connect it to her.
-  swarmfu games                 List the games swarmfu can follow.
-  swarmfu status                Show what this computer is paired with.
-  swarmfu unpair                Forget the pairing on this computer.
-  swarmfu version
+  swarmfu-connect start [game] [--port ${BRIDGE_DEFAULT_PORT}] [-- adapter args…]
+      Start a game (default: the one installed here) and connect it to your companion.
+  swarmfu-connect games         List the games swarmfu-connect can follow.
+  swarmfu-connect status        Show what this computer is paired with.
+  swarmfu-connect unpair        Forget the pairing on this computer.
+  swarmfu-connect version
 
   --site <url>        The Swarmfu site to pair through (default ${DEFAULT_SITE}).
   --convex-url <url>  Skip the site and use this backend (for development).`;
@@ -63,7 +63,7 @@ function requireConfig(): BridgeConfig {
     return (
       loadConfig() ??
       fail(
-        "This computer isn't paired yet. Run `swarmfu pair <CODE>`, or just `swarmfu`.",
+        "This computer isn't paired yet. Run `swarmfu-connect pair <CODE>`, or just `swarmfu-connect`.",
       )
     );
   } catch (error) {
@@ -141,7 +141,7 @@ async function pair(argv: string[]) {
     convexUrl: values["convex-url"],
     name: values.name,
   });
-  console.log("Start your game with: swarmfu");
+  console.log("Start your game with: swarmfu-connect");
 }
 
 /** Runs one game's adapter, connected to her, until Ctrl+C. */
@@ -153,7 +153,7 @@ async function run(
 ) {
   const adapters = adaptersOf(config);
   const entry =
-    adapters[id] ?? fail(`No game called "${id}". Try: swarmfu games`);
+    adapters[id] ?? fail(`No game called "${id}". Try: swarmfu-connect games`);
   const bridge = new Bridge({
     backend: convexBackend(config.convexUrl, config.token),
     adapter: { id, entry, args: adapterArgs },
@@ -199,7 +199,7 @@ async function start(argv: string[]) {
   const id =
     positionals[0] ??
     (await chooseGame()) ??
-    fail("No supported game found here. Name one: swarmfu games");
+    fail("No supported game found here. Name one: swarmfu-connect games");
   await run(config, id, adapterArgs, port);
 }
 
@@ -219,9 +219,9 @@ async function chooseGame(): Promise<string | null> {
   }
 }
 
-/** `swarmfu` on its own, or double-clicked: pair if needed, find the game, follow it. */
+/** `swarmfu-connect` on its own, or double-clicked: pair if needed, find the game, follow it. */
 async function guided() {
-  console.log(`swarmfu ${VERSION}`);
+  console.log(`swarmfu-connect ${VERSION}`);
   let config = tryLoadConfig();
   if (!config) {
     console.log(
@@ -243,7 +243,7 @@ async function guided() {
     console.log(
       "No supported game found on this computer. Install its connector mod and run the game once, then try again.",
     );
-    console.log("Games swarmfu can follow:");
+    console.log("Games swarmfu-connect can follow:");
     games();
     fail("Nothing to follow yet.");
   }
@@ -274,7 +274,7 @@ async function main(argv: string[]) {
   if (command === "adapter") return await runAdapter(rest);
   if (command !== "version")
     void newerRelease().then(
-      (newer) => newer && console.error(`A newer swarmfu is out: ${newer}`),
+      (newer) => newer && console.error(`A newer swarmfu-connect is out: ${newer}`),
     );
   switch (command) {
     case undefined:
@@ -296,7 +296,7 @@ async function main(argv: string[]) {
     case "version":
     case "--version":
       return console.log(
-        `swarmfu ${VERSION} (bridge protocol ${BRIDGE_PROTOCOL})`,
+        `swarmfu-connect ${VERSION} (bridge protocol ${BRIDGE_PROTOCOL})`,
       );
     case "help":
     case "--help":

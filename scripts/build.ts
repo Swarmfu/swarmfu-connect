@@ -4,12 +4,12 @@ import { join } from "node:path";
 import { parseArgs } from "node:util";
 
 /**
- * Builds the swarmfu binaries:
+ * Builds the swarmfu-connect binaries:
  *   bun scripts/build.ts                 this computer only
  *   bun scripts/build.ts --all           every release target
  *   bun scripts/build.ts --target linux-x64 --minecraft
- * `swarmfu` leaves out Minecraft, whose data files run to hundreds of MB;
- * `--minecraft` builds `swarmfu-minecraft`, which has it.
+ * `swarmfu-connect` leaves out Minecraft, whose data files run to hundreds of MB;
+ * `--minecraft` builds `swarmfu-connect-minecraft`, which has it.
  */
 
 export const TARGETS = {
@@ -36,7 +36,7 @@ const targets: Target[] = values.all ? (Object.keys(TARGETS) as Target[]) : ((va
 for (const target of targets) if (!(target in TARGETS)) throw new Error(`unknown target ${target}; one of ${Object.keys(TARGETS).join(", ")}`);
 
 mkdirSync(values.out!, { recursive: true });
-const name = values.minecraft ? "swarmfu-minecraft" : "swarmfu";
+const name = values.minecraft ? "swarmfu-connect-minecraft" : "swarmfu-connect";
 for (const target of targets) {
   const outfile = join(values.out!, `${name}-${target}${target.startsWith("windows") ? ".exe" : ""}`);
   const result = await Bun.build({

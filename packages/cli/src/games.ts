@@ -3,7 +3,7 @@ import { pointersFolder, readPointers } from "@swarmfu/connect-files/pointers";
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 
-/** A game swarmfu found on this computer. */
+/** A game swarmfu-connect found on this computer. */
 export interface InstalledGame {
   id: string;
   name: string;

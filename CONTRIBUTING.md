@@ -21,7 +21,7 @@ Keep packs to data: rules, conditions and templates. A pack never runs code.
 `packages/protocol` is published as `@swarmfu/connect-protocol` and Swarmfu's backend depends on it, so a change there needs a version bump and care:
 
 - **Adding** an optional field or a kind is fine.
-- **Removing or renaming** something, or changing what a field means, also needs `BRIDGE_PROTOCOL` bumped. Old `swarmfu`s then stop with "update swarmfu" instead of misbehaving.
+- **Removing or renaming** something, or changing what a field means, also needs `BRIDGE_PROTOCOL` bumped. Old `swarmfu-connect`s then stop with "update swarmfu-connect" instead of misbehaving.
 
 ## Code
 

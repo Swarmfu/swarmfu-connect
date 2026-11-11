@@ -8,7 +8,7 @@ import { parseArgs } from "node:util";
  * Joins a Minecraft (Java) world as her player and serves the adapter on
  * stdio, the way the bridge runs it:
  *
- *   swarmfu start minecraft -- --port 51234 --partner Steve
+ *   swarmfu-connect start minecraft -- --port 51234 --partner Steve
  *
  * For a world opened to LAN, the port is the one the game prints in chat.
  * `--auth offline` (the default) joins servers in offline mode; LAN worlds

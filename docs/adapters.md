@@ -4,9 +4,9 @@ Most games only need a mod and a pack (see the [mod guide](mod-guide.md)). Write
 - She plays in it herself, like Minecraft, where she's a bot with tools.
 - It has an API or a socket worth talking to directly.
 
-An adapter is an **MCP server** on stdio. `swarmfu` starts it, reads its manifest, and from then on:
+An adapter is an **MCP server** on stdio. `swarmfu-connect` starts it, reads its manifest, and from then on:
 - **Events** come from the adapter as `notifications/game/event` notifications, each a `GameEvent` (`@swarmfu/connect-protocol`). Anything that doesn't fit the manifest is dropped.
-- **Tools** are MCP tools. She calls them through Swarmfu, and `swarmfu` forwards each call if the manifest declares the tool. A tool marked destructive only goes through if the user allowed it.
+- **Tools** are MCP tools. She calls them through Swarmfu, and `swarmfu-connect` forwards each call if the manifest declares the tool. A tool marked destructive only goes through if the user allowed it.
 - **Resources:** `game://<id>/manifest` is required. `game://<id>/self` says who she and the user are and which world it is. Add any other state she can read.
 
 `createAdapterServer()` from `@swarmfu/connect-protocol/adapter` does the MCP side: you give it the manifest, your tools' inputs, a tool handler and a resource reader, and it checks every event before sending it.
@@ -49,4 +49,4 @@ During development, add it to `~/.swarmfu/config.json`:
 { "adapters": { "mygame": { "command": "bun", "args": ["/path/to/main.ts"], "description": "My Game" } } }
 ```
 
-Then `swarmfu start mygame`. To ship it with `swarmfu`, add it as a package here and to `builtinAdapters()` in `packages/cli/src/adapter.ts`. `packages/minecraft` and `packages/simulator` are working examples.
+Then `swarmfu-connect start mygame`. To ship it with `swarmfu-connect`, add it as a package here and to `builtinAdapters()` in `packages/cli/src/adapter.ts`. `packages/minecraft` and `packages/simulator` are working examples.

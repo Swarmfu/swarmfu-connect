@@ -247,7 +247,7 @@ export function createFileAdapter(
   /**
    * The copy she plays: hers in co-op, else the streamer's when its connector
    * takes commands. Whether she may is the streamer's say on the site ("Let
-   * her play") and the game's own control setting, not swarmfu's.
+   * her play") and the game's own control setting, not swarmfu-connect's.
    */
   const controlled = (): Instance | undefined => {
     const { main, cohost } = following;

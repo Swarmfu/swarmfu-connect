@@ -85,6 +85,8 @@ test("the pairing prompt takes the code, or the whole line the Game card copies"
   });
   expect(readPairingLine(".\\swarmfu.exe pair K7QM2P --site=https://a.vercel.app")).toEqual({ code: "K7QM2P", site: "https://a.vercel.app" });
   expect(readPairingLine("K7QM2P https://a.vercel.app")).toEqual({ code: "K7QM2P", site: "https://a.vercel.app" });
+  expect(readPairingLine("swarmfu-connect pair K7QM2P --site https://a.vercel.app")).toEqual({ code: "K7QM2P", site: "https://a.vercel.app" });
+  expect(readPairingLine("swarmfu-connect.exe pair K7QM2P")).toEqual({ code: "K7QM2P" });
   expect(readPairingLine("swarmfu pair")).toBeNull();
   expect(readPairingLine("")).toBeNull();
 });

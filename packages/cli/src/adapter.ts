@@ -30,10 +30,10 @@ import type { AdapterEntry } from "./config.ts";
  * called.
  */
 
-/** Whether this is the compiled `swarmfu` binary rather than the source run under Bun. */
+/** Whether this is the compiled `swarmfu-connect` binary rather than the source run under Bun. */
 export const compiled = (): boolean => /[/\\](\$bunfs|~BUN)[/\\]/.test(import.meta.path);
 
-/** The built-in adapters, as `swarmfu adapter <name>` runs them (adapters.ts). */
+/** The built-in adapters, as `swarmfu-connect adapter <name>` runs them (adapters.ts). */
 export const ADAPTER_MAINS = {
   files: "@swarmfu/connect-files/main",
   minecraft: "@swarmfu/connect-minecraft/main",
@@ -43,7 +43,7 @@ export type AdapterMain = keyof typeof ADAPTER_MAINS;
 
 /**
  * How to start a built-in adapter: the compiled binary runs itself
- * (`swarmfu adapter files …`), since it carries no scripts; from source,
+ * (`swarmfu-connect adapter files …`), since it carries no scripts; from source,
  * Bun runs the adapter's main file.
  */
 function launch(main: AdapterMain, args: string[]): Pick<AdapterEntry, "command" | "args"> {
@@ -53,14 +53,14 @@ function launch(main: AdapterMain, args: string[]): Pick<AdapterEntry, "command"
 }
 
 /**
- * How to start Minecraft, if this swarmfu can: from source, or a build with it
- * in (`swarmfu-minecraft`); from the everyday build, through a
- * `swarmfu-minecraft` binary next to it. Null when there's neither.
+ * How to start Minecraft, if this swarmfu-connect can: from source, or a build with it
+ * in (`swarmfu-connect-minecraft`); from the everyday build, through a
+ * `swarmfu-connect-minecraft` binary next to it. Null when there's neither.
  */
 function minecraftLaunch(): Pick<AdapterEntry, "command" | "args"> | null {
   if (!compiled() || process.env.SWARMFU_WITH_MINECRAFT !== "0") return launch("minecraft", []);
   const dir = dirname(process.execPath);
-  const sibling = readdirSync(dir).find((file) => /^swarmfu-minecraft(-[a-z0-9-]+)?(\.exe)?$/.test(file));
+  const sibling = readdirSync(dir).find((file) => /^swarmfu(-connect)?-minecraft(-[a-z0-9-]+)?(\.exe)?$/.test(file));
   return sibling ? { command: join(dir, sibling), args: ["adapter", "minecraft"] } : null;
 }
 
@@ -131,7 +131,7 @@ export class AdapterConnection {
       for (const line of chunk.toString().split("\n"))
         if (line.trim()) handlers.log?.(line);
     });
-    const client = new Client({ name: "swarmfu", version: "0.1.0" });
+    const client = new Client({ name: "swarmfu-connect", version: "0.1.0" });
     let manifest: AdapterManifest | null = null;
     // Events can arrive as soon as the handshake ends, before the manifest is read; hold them.
     const early: unknown[] = [];

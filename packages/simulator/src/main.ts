@@ -22,7 +22,7 @@ const { values, positionals } = parseArgs({
   },
 });
 
-// The bundled recording is embedded, so the compiled swarmfu carries it too.
+// The bundled recording is embedded, so the compiled swarmfu-connect carries it too.
 const recording = parseRecording(positionals[0] ? readFileSync(positionals[0], "utf8") : firstNight);
 
 const { server } = createSimulator(recording, {

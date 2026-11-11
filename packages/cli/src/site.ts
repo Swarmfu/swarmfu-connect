@@ -23,8 +23,8 @@ export async function resolveSite(site: string, fetcher: typeof fetch = fetch): 
   if (parsed.data.protocol !== BRIDGE_PROTOCOL)
     throw new Error(
       parsed.data.protocol > BRIDGE_PROTOCOL
-        ? "This swarmfu is too old for Swarmfu now. Download the latest from github.com/Swarmfu/swarmfu-connect/releases."
-        : `${origin} runs an older Swarmfu than this swarmfu expects.`,
+        ? "This swarmfu-connect is too old for Swarmfu now. Download the latest from github.com/Swarmfu/swarmfu-connect/releases."
+        : `${origin} runs an older Swarmfu than this swarmfu-connect expects.`,
     );
   return { site: origin, convexUrl: parsed.data.convexUrl };
 }
@@ -32,7 +32,7 @@ export async function resolveSite(site: string, fetcher: typeof fetch = fetch): 
 /**
  * What someone typed at the "Pairing code:" prompt: the code alone, or the
  * whole line the Game card copies off www.swarmfu.com
- * (`swarmfu pair <CODE> --site <url>`), so a double-clicked swarmfu pairs
+ * (`swarmfu-connect pair <CODE> --site <url>`), so a double-clicked swarmfu-connect pairs
  * with a preview too. Null when there's no code in it.
  */
 export function readPairingLine(line: string): { code: string; site?: string } | null {
@@ -47,7 +47,7 @@ export function readPairingLine(line: string): { code: string; site?: string } |
     else rest.push(word);
   }
   // Drop the program's name and the subcommand, however the line was copied.
-  while (rest.length && /^(\.[/\\])?swarmfu(\.exe)?$|^pair$/i.test(rest[0]!)) rest.shift();
+  while (rest.length && /^(\.[/\\])?swarmfu(-connect)?(\.exe)?$|^pair$/i.test(rest[0]!)) rest.shift();
   const code = rest.find((word) => !word.startsWith("-"));
   return code ? { code, ...(site ? { site } : {}) } : null;
 }

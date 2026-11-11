@@ -10,7 +10,7 @@ import { join } from "node:path";
 /**
  * Pointer files (docs/mod-guide.md, "Finding the files"): a game that can
  * write anywhere leaves one per running copy in ~/.swarmfu/connectors, saying
- * which folder holds that copy's manifest. The mod doesn't know where swarmfu
+ * which folder holds that copy's manifest. The mod doesn't know where swarmfu-connect
  * keeps its config, so this is always the home folder's, whatever
  * $SWARMFU_HOME says.
  */

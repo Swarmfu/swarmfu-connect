@@ -125,7 +125,7 @@ export const connectorManifestSchema: z.ZodType<ConnectorManifest> = z
   })
   .loose();
 
-/** Where a connector that can write anywhere leaves its pointers: `connectors` in swarmfu's folder. */
+/** Where a connector that can write anywhere leaves its pointers: `connectors` in swarmfu-connect's folder, ~/.swarmfu. */
 export const POINTERS_FOLDER = "connectors";
 
 /**

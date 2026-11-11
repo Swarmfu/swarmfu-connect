@@ -9,7 +9,7 @@
     "typecheck": "bun run --filter '*' typecheck",
     "test": "bun test",
     "build": "bun scripts/build.ts",
-    "swarmfu": "bun packages/cli/src/cli.ts"
+    "swarmfu-connect": "bun packages/cli/src/cli.ts"
   },
   "devDependencies": {
     "@types/bun": "^1.4.3",

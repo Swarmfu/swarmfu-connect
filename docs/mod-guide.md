@@ -9,7 +9,7 @@ adapter reads them. You don't write any Swarmfu code. To add a game:
    each of your event types means to her (see [Game packs](#game-packs)).
 3. Add the pack to `PACKS` in `packages/files/src/packs/index.ts`, with a
    fixture of real output from your mod and a test (see CONTRIBUTING.md), and
-   open a PR. Once it's released, `swarmfu` finds the game for anyone who has
+   open a PR. Once it's released, `swarmfu-connect` finds the game for anyone who has
    the mod installed.
 
 The Project Zomboid connector (`swarmfu-connector`) is the reference
@@ -178,7 +178,7 @@ long as they have other names and are off in a release.
 
 A game that can only write inside its own folder (Project Zomboid) needs
 nothing more: the pack names the folder. A game that can write anywhere also
-leaves a **pointer file**, so swarmfu finds it wherever it is and can tell
+leaves a **pointer file**, so swarmfu-connect finds it wherever it is and can tell
 two running copies apart.
 
 Pointers go in `~/.swarmfu/connectors/` (`%USERPROFILE%\.swarmfu\connectors\`
@@ -225,15 +225,15 @@ All optional. Without them she watches a single copy of the game.
 ### Co-op
 
 When she plays her own copy of the game in the streamer's lobby, both copies
-describe the same run. swarmfu follows the streamer's copy and hers in the
+describe the same run. swarmfu-connect follows the streamer's copy and hers in the
 same `group` as one play session:
 
 - What happens comes from the **streamer's** copy. Mark her character there as
   a `teammate` with its `data.player_name` (or `data.name`), like any other player.
-- From **her** copy, swarmfu reads only events whose `subject` is `cohost`,
+- From **her** copy, swarmfu-connect reads only events whose `subject` is `cohost`,
   plus `decision_needed`, `command_result` and `control_changed`. Her copy
   should send her own character's events as `cohost`.
-- swarmfu drops the streamer copy's `teammate` events whose `player_name` is
+- swarmfu-connect drops the streamer copy's `teammate` events whose `player_name` is
   her character's name (from her copy's heartbeat, through the pack's
   `player` templates), since her copy tells those.
 - With only her copy running, it tells everything.
@@ -263,10 +263,10 @@ connector takes commands.
     "nothing to decide". It gets no `decision_needed`.
 - **Her turn:** send `decision_needed {decision_id, kind, prompt}` when a new
   decision opens; that's what gives her a turn.
-- **Her move:** swarmfu appends one line to the commands file:
+- **Her move:** swarmfu-connect appends one line to the commands file:
   `{"v":1,"id":"c-…","ts":…,"decision":"d41","action":"play card","args":{"card":"c12","target":"e3"},"say":"…"}`.
 - **The answer:** a `command_result {command_id, status, action, summary,
-  reason, next}` event. swarmfu waits for it, then for the next decision, and
+  reason, next}` event. swarmfu-connect waits for it, then for the next decision, and
   tells her both. `next` says what happens after the move when it hands
   things over ("The enemies' turn is playing out."); she hears "Done:
   <summary>. <next>".
