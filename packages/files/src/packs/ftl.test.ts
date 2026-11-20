@@ -22,6 +22,8 @@ import { ftl } from "./ftl.ts";
  */
 const SIM = join(import.meta.dir, "../../fixtures/ftl-sim/FTL_HS.log");
 const RUN = join(import.meta.dir, "../../fixtures/ftl-run1/FTL_HS.log");
+/** A second real run, with the fixed mod: options taken, hits taken, two fights. */
+const RUN2 = join(import.meta.dir, "../../fixtures/ftl-run2/FTL_HS.log");
 const FIXTURE = SIM;
 
 const dirs: string[] = [];
@@ -85,6 +87,18 @@ test("the real run reads as hers, beginning to end", () => {
   expect(lines).toContain("Hit the enemy for 2: 6 of 8 hull left.");
   expect(lines).toContain("Destroyed the Pirate Rigger.");
   expect(lines).toContain("Jumped to beacon 3 of the run, in sector 1.");
+});
+
+test("in the second real run, the options taken and the hits taken read right", () => {
+  const { events } = fixture(RUN2);
+  const lines = events.map((e) => translateEvent(ftl, e, { player: "The Kestrel" })!.summary);
+  expect(lines).toContain("The Kestrel chose: Demand the surrender of their goods.");
+  expect(lines).toContain("The Kestrel chose: (Missile Weapon) Bombard their key structures.");
+  expect(lines).toContain("The hull took 1 damage: 29 of 30 left.");
+  // The choice comes before the text it led to.
+  expect(lines.indexOf("The Kestrel chose: Demand the surrender of their goods.")).toBeLessThan(
+    lines.indexOf("You prepare to secure their cargo by force."),
+  );
 });
 
 test("a hit with little hull left is a reflex", () => {
