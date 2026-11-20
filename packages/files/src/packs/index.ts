@@ -1,6 +1,7 @@
 import type { GamePack, PackOs } from "@swarmfu/connect-protocol";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { ftl } from "./ftl.ts";
 import { projectzomboid } from "./projectzomboid.ts";
 import { slaythespire2 } from "./slaythespire2.ts";
 
@@ -9,6 +10,7 @@ import { slaythespire2 } from "./slaythespire2.ts";
  * (docs/game-connectors/mod-guide.md). Adding a game is a pack here, by PR.
  */
 export const PACKS: Record<string, GamePack> = {
+  [ftl.id]: ftl,
   [projectzomboid.id]: projectzomboid,
   [slaythespire2.id]: slaythespire2,
 };

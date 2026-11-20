@@ -1,6 +1,7 @@
 import { PACKS, packFolder } from "@swarmfu/connect-files/packs";
 import { pointersFolder, readPointers } from "@swarmfu/connect-files/pointers";
 import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { homedir } from "node:os";
 
 /** A game swarmfu-connect found on this computer. */
@@ -19,7 +20,8 @@ export function installedGames(os: string = process.platform, home: string = hom
   const pointers = readPointers(pointersFolder(home));
   return Object.values(PACKS).flatMap((pack) => {
     const folder = packFolder(pack, os, home);
-    if (folder && existsSync(folder)) return [{ id: pack.id, name: pack.game, folder }];
+    // A mod that writes into the game's log (FTL's) has run once that log is there.
+    if (folder && existsSync(pack.log ? join(folder, pack.log.file) : folder)) return [{ id: pack.id, name: pack.game, folder }];
     const pointer = pointers.find((p) => p.source === pack.id);
     return pointer ? [{ id: pack.id, name: pack.game, folder: pointer.root }] : [];
   });

@@ -32,6 +32,7 @@ import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { packFolder } from "./packs/index.ts";
 import { pointersFolder, readPointers } from "./pointers.ts";
+import { LogReader } from "./logReader.ts";
 import { ConnectorReader } from "./reader.ts";
 
 /**
@@ -114,7 +115,8 @@ const controlOf = (heartbeat: Heartbeat | null) => {
 /** One copy of the game, followed through its folder. */
 interface Instance {
   root: string;
-  reader: ConnectorReader;
+  /** The connector's files, or the game's log it writes into (a pack with `log`). */
+  reader: ConnectorReader | LogReader;
   manifest: ConnectorManifest | null;
   heartbeat: Heartbeat | null;
   state: GameState | null;
@@ -147,7 +149,8 @@ export function createFileAdapter(
     if (options.dir) roots.add(resolve(options.dir));
     else {
       const folder = packFolder(pack, process.platform, options.home);
-      if (folder && existsSync(folder)) roots.add(resolve(folder));
+      // A pack whose mod writes into the game's log is there once the log is.
+      if (folder && existsSync(pack.log ? join(folder, pack.log.file) : folder)) roots.add(resolve(folder));
       for (const pointer of readPointers(options.pointers ?? pointersFolder(options.home), pack.id))
         roots.add(resolve(pointer.root));
     }
@@ -155,7 +158,9 @@ export function createFileAdapter(
       if (!instances.has(root))
         instances.set(root, {
           root,
-          reader: new ConnectorReader({ dir: root, fromStart: options.fromStart, since: startedAt, log }),
+          reader: pack.log
+            ? new LogReader({ file: join(root, pack.log.file), prefix: pack.log.prefix, fromStart: options.fromStart, now, log })
+            : new ConnectorReader({ dir: root, fromStart: options.fromStart, since: startedAt, log }),
           manifest: null,
           heartbeat: null,
           state: null,
