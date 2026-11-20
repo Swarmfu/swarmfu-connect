@@ -13,11 +13,16 @@ import { LogReader } from "../logReader.ts";
 import { ftl } from "./ftl.ts";
 
 /**
- * The fixture is the connector's own output: its Lua run in Lua 5.3 against
- * a mock of Hyperspace's API and a scripted run (the mod's tools/sim), as
- * Hyperspace writes FTL_HS.log. To be replaced by a log from a real run.
+ * Two logs: `ftl-run1` is FTL_HS.log from a real run (FTL 1.6.13, Hyperspace
+ * 1.23.2, mod 0.1.0 before the fixes that run showed: a start beacon, three
+ * jumps, a store, a mercenary turned enemy and destroyed). `ftl-sim` is the
+ * current mod run in Lua 5.3 against the mod's mock of Hyperspace
+ * (tools/sim), covering what that run didn't: a hit taken, a crew member
+ * lost, the option taken, a new sector, back to the menu.
  */
-const FIXTURE = join(import.meta.dir, "../../fixtures/ftl-sim/FTL_HS.log");
+const SIM = join(import.meta.dir, "../../fixtures/ftl-sim/FTL_HS.log");
+const RUN = join(import.meta.dir, "../../fixtures/ftl-run1/FTL_HS.log");
+const FIXTURE = SIM;
 
 const dirs: string[] = [];
 afterEach(() => {
@@ -25,9 +30,9 @@ afterEach(() => {
     rmSync(dir, { recursive: true, force: true });
 });
 
-function fixture() {
+function fixture(file = FIXTURE) {
   const reader = new LogReader({
-    file: FIXTURE,
+    file,
     prefix: ftl.log!.prefix,
     fromStart: true,
     now: () => 1,
@@ -47,18 +52,39 @@ test("every event in the run reads as a line of hers", () => {
   expect(lines).toContain(
     "A new FTL run: The Kestrel, a Kestrel Cruiser, on normal.",
   );
+  // The start beacon's text is the run's, after its start.
+  expect(lines.indexOf("The data you carry is vital to the remaining Federation fleet.")).toBe(
+    lines.indexOf("A new FTL run: The Kestrel, a Kestrel Cruiser, on normal.") + 1,
+  );
   expect(lines).toContain(
     "A damaged station hails you, asking for help with a fire in its engine room. Options: Send your crew to help, Ignore them and move on, (Medbay) Treat their wounded.",
   );
   expect(lines).toContain("The Kestrel chose: Ignore them and move on.");
-  expect(lines).toContain("A hostile ship: Rebel Fighter, 10 hull, 1 crew.");
+  expect(lines).toContain("Another ship is here: a Pirate Rigger.");
+  expect(lines).toContain("The Pirate Rigger is hostile now: a fight, 10 hull.");
   expect(lines).toContain("The hull took 3 damage: 27 of 30 left.");
   expect(lines).toContain("Lost Zed, the Engi. 2 crew left.");
-  expect(lines).toContain("Destroyed the Rebel Fighter.");
+  expect(lines).toContain("Destroyed the Pirate Rigger.");
   expect(lines).toContain(
     "Into sector 2: Mantis Homeworlds, a hostile sector.",
   );
   expect(lines).toContain("Back at FTL's main menu.");
+});
+
+test("the real run reads as hers, beginning to end", () => {
+  const { events, manifest, heartbeat } = fixture(RUN);
+  expect(manifest).toMatchObject({ source: "ftl", connector_version: "0.1.0" });
+  expect(heartbeat).toMatchObject({ in_run: true });
+  const lines = events.map((e) => translateEvent(ftl, e, { player: "The Kestrel" })!.summary);
+  expect(lines).toHaveLength(34);
+  expect(lines).toContain("There's a store here. A ship engineer has set up a small shop here. Options: Continue...");
+  expect(lines).toContain(
+    'A mercenary hails you: "Greetings, friend! We\'ve heard tell of your quest and are here to offer our valuable services." Options: Hire the mercenary to delay the Rebels, Hire the mercenary to scout the sector, Fight the ship, You have no need of his services.',
+  );
+  expect(lines).toContain("Another ship is here: a Pirate Rigger.");
+  expect(lines).toContain("Hit the enemy for 2: 6 of 8 hull left.");
+  expect(lines).toContain("Destroyed the Pirate Rigger.");
+  expect(lines).toContain("Jumped to beacon 3 of the run, in sector 1.");
 });
 
 test("a hit with little hull left is a reflex", () => {
@@ -98,7 +124,7 @@ test("her picture of right now: ship, sector and supplies, then crew, systems an
     location: { sector: 1, sector_name: "Civilian Sector", jumps: 1 },
     crew: [{ name: "Ripley", species: "Human", health: 100 }],
     enemy: {
-      name: "Rebel Fighter",
+      class: "Rebel Fighter",
       hostile: true,
       hull: 6,
       max_hull: 10,
@@ -106,12 +132,12 @@ test("her picture of right now: ship, sector and supplies, then crew, systems an
     },
   };
   expect(statusLine(ftl, inRun, { player: "The Kestrel" })).toBe(
-    "The Kestrel in sector 1 (Civilian Sector), 1 jumps in: hull 27 of 30, 52 scrap, 16 fuel, 8 missiles, 2 drone parts.",
+    "The Kestrel in sector 1 (Civilian Sector), beacon 1 of the run: hull 27 of 30, 52 scrap, 16 fuel, 8 missiles, 2 drone parts.",
   );
   const more = Object.fromEntries(
     moreStatusLines(ftl, inRun, {}).map((l) => [l.kind, l.line]),
   );
-  expect(more.enemy).toBe("Fighting the Rebel Fighter: 6 of 10 hull, 1 crew.");
+  expect(more.enemy).toBe("Fighting a Rebel Fighter: 6 of 10 hull, 1 crew.");
   expect(more.crew).toStartWith("Crew: ");
 });
 

@@ -78,12 +78,12 @@ export const ftl: GamePack = {
           lane: "respond",
           tally: true,
           summary:
-            "Jumped to a new beacon in sector {data.sector}: {data.environment}.",
+            "Jumped to beacon {data.jumps} of the run, in sector {data.sector}: {data.environment}.",
         },
         {
           tally: true,
           summary:
-            "Jumped to a new beacon in sector {data.sector} ({data.jumps} jumps this run).",
+            "Jumped to beacon {data.jumps} of the run, in sector {data.sector}.",
         },
         { tally: true, summary: "Jumped to a new beacon." },
       ],
@@ -104,11 +104,17 @@ export const ftl: GamePack = {
       description:
         "An event's text at a beacon and the choices it offers, as the player reads it.",
       rules: [
+        // An event with one option ("Continue...") comes without options: only its text is told.
         {
           when: { "data.store": true },
           lane: "respond",
           summary:
             "There's a store here. {data.text|text} Options: {data.options|list}.",
+        },
+        {
+          when: { "data.store": true },
+          lane: "respond",
+          summary: "There's a store here. {data.text|text}",
         },
         {
           lane: "respond",
@@ -118,7 +124,8 @@ export const ftl: GamePack = {
       ],
     },
     choice_made: {
-      description: "The option they took in an event.",
+      description:
+        "The option they took in an event: the one under the mouse, or picked, when it closed.",
       rules: [
         { summary: "{player} chose: {data.choice}" },
         { summary: "They made a choice." },
@@ -137,16 +144,29 @@ export const ftl: GamePack = {
         {
           when: { "data.hostile": true },
           lane: "respond",
+          // Ships met are known by their class ("Pirate Rigger").
           summary:
-            "A hostile ship: {data.name}, {data.max_hull} hull[[, {data.crew} crew]].",
+            "A hostile ship: a {data.class}, {data.max_hull} hull[[, {data.crew} crew]].",
         },
         {
           when: { "data.hostile": true },
           lane: "respond",
           summary: "A hostile ship is here.",
         },
-        { summary: "Another ship is here: {data.name}." },
+        { summary: "Another ship is here: a {data.class}." },
         { summary: "Another ship is here." },
+      ],
+    },
+    ship_turned_hostile: {
+      description:
+        "A ship that was peaceful turned on them: a fight is starting.",
+      rules: [
+        {
+          lane: "respond",
+          summary:
+            "The {data.class} is hostile now: a fight, {data.max_hull} hull.",
+        },
+        { lane: "respond", summary: "The other ship turned hostile." },
       ],
     },
     hull_hit: {
@@ -227,7 +247,7 @@ export const ftl: GamePack = {
         {
           lane: "reflex",
           reaction: "cheer",
-          summary: "Destroyed the {data.name}.",
+          summary: "Destroyed the {data.class}.",
         },
         {
           lane: "reflex",
@@ -240,7 +260,7 @@ export const ftl: GamePack = {
       description:
         "The other ship jumped away or the encounter ended without destroying it.",
       rules: [
-        { summary: "The {data.name} is gone." },
+        { summary: "The {data.class} is gone." },
         { summary: "The other ship is gone." },
       ],
     },
@@ -307,14 +327,14 @@ export const ftl: GamePack = {
     everyMs: 30_000,
     summary: [
       { when: { in_run: false }, summary: "At FTL's main menu." },
-      "{player} in sector {location.sector} ({location.sector_name}), {location.jumps} jumps in: hull {player.hull} of {player.max_hull}, {player.scrap} scrap, {player.fuel} fuel, {player.missiles} missiles, {player.drone_parts} drone parts.",
+      "{player} in sector {location.sector} ({location.sector_name}), beacon {location.jumps} of the run: hull {player.hull} of {player.max_hull}, {player.scrap} scrap, {player.fuel} fuel, {player.missiles} missiles, {player.drone_parts} drone parts.",
       // From the heartbeat, before a state arrives.
       "{player.ship}: hull {player.hull} of {player.max_hull}.",
     ],
     more: [
       {
         kind: "crew",
-        description: "Their crew, each with their species and health.",
+        description: "Their crew, each with their race and health.",
         summary: [
           { when: { crew: { exists: true } }, summary: "Crew: {crew|list}." },
           { when: { in_run: true }, summary: "No crew aboard." },
@@ -338,11 +358,11 @@ export const ftl: GamePack = {
           {
             when: { "enemy.hostile": true },
             summary:
-              "Fighting the {enemy.name}: {enemy.hull} of {enemy.max_hull} hull, {enemy.crew} crew.",
+              "Fighting a {enemy.class}: {enemy.hull} of {enemy.max_hull} hull, {enemy.crew} crew.",
           },
           {
             when: { enemy: { exists: true } },
-            summary: "Another ship here: the {enemy.name}.",
+            summary: "Another ship here: a {enemy.class}.",
           },
           { when: { in_run: true }, summary: "No other ship here." },
         ],
