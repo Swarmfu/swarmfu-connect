@@ -302,6 +302,15 @@ export interface GamePack {
   /** The connector's folder on each OS, `~` for the home directory. */
   folder: Partial<Record<PackOs, string>>;
   /**
+   * For a mod that can't write files of its own (FTL's Hyperspace Lua):
+   * it writes its lines into a log the game keeps, `file` in `folder`, each
+   * holding `prefix` and then one JSON object whose `t` says what it is
+   * (`manifest`, `heartbeat`, `state` or `event`). The mod can't tell the
+   * time, so each line is stamped as it's read (docs/mod-guide.md, "A log
+   * instead of files").
+   */
+  log?: { file: string; prefix: string };
+  /**
    * The character's name, from the heartbeat (or the state file): templates
    * tried in order, e.g. `["{player.username}", "{player.forename} {player.surname}"]`.
    */

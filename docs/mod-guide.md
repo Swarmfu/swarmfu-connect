@@ -195,6 +195,30 @@ Write it when the game starts and remove it when it closes cleanly:
 - A pointer whose folder's heartbeat has stopped is treated as closed, so a
   crash that leaves one behind does no harm.
 
+### A log instead of files
+
+Some games' modding only lets a mod write into a log the game keeps (FTL's
+Hyperspace Lua has `log()` but no file access). Such a mod writes each of
+the files above as a line in that log instead:
+
+```
+[Lua]: [swarmfu] {"t":"event","v":1,"session":"2-674818094","seq":7,"type":"hull_hit","subject":"player","data":{"lost":3,"hull":27,"max_hull":30}}
+```
+
+- Each line has the pack's prefix (`[swarmfu] `) somewhere in it, then one
+  JSON object, on one line. Whatever the game puts before the prefix is
+  ignored, and so are lines without it.
+- `t` says what the object is: `manifest`, `heartbeat`, `state` or `event`,
+  each as described above. The manifest's `events_file` can be left out; the
+  log is the events file.
+- `ts` can be left out on every line: swarmfu-connect stamps each line as it
+  reads it, since such a mod often can't tell the time. It also makes the
+  `session` unique, since such a mod can't make a time-based one.
+- Send a heartbeat line every ~2 seconds, even at the game's menu, or the
+  game looks closed.
+- The pack gives `log: { file, prefix }`, with `file` in its `folder`. A game
+  that starts its log again on each launch is followed into the new one.
+
 ### More in the manifest
 
 All optional. Without them she watches a single copy of the game.

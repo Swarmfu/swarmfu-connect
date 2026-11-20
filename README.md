@@ -37,6 +37,7 @@ Minecraft, where your companion joins as a player of their own, comes as a separ
 | --- | --- | --- |
 | Project Zomboid (Build 42) | the `swarmfu-connector` mod | [`projectzomboid.ts`](packages/files/src/packs/projectzomboid.ts) |
 | Slay the Spire 2 (beta) | the [Swarmfu Connector](https://steamcommunity.com/sharedfiles/filedetails/?id=3838028473) mod (Steam Workshop), including co-op with her in the lobby | [`slaythespire2.ts`](packages/files/src/packs/slaythespire2.ts) |
+| FTL: Faster Than Light (beta, with Hyperspace) | the Swarmfu Connector Hyperspace mod, writing into Hyperspace's log | [`ftl.ts`](packages/files/src/packs/ftl.ts) |
 | Minecraft: Java Edition | she joins as a bot (Mineflayer) | [`packages/minecraft`](packages/minecraft) |
 
 ### Slay the Spire 2
